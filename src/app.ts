@@ -52,7 +52,8 @@ app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }), web
 app.use(
       cors({
             origin: [
-                  'https://mehor.com','http://168.231.64.178:3000','http://168.231.64.178:3001'
+                  'https://mehor.com', 'https://dashboard.mehor.com','http://168.231.64.178:3000','http://168.231.64.178:3001','http://168.231.64.178:4175'
+    
             ],
             credentials: true,
       })
