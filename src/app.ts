@@ -42,9 +42,18 @@ app.use('/api/v1/stripe/webhook', express.raw({ type: 'application/json' }), web
 //             credentials: true,
 //       })
 // );
+// app.use(
+//       cors({
+//             origin: "*",
+//             credentials: true,
+//       })
+// );
+
 app.use(
       cors({
-            origin: "*",
+            origin: [
+                  'http://mehor.com','http://168.231.64.178:3000','http://168.231.64.178:3001'
+            ],
             credentials: true,
       })
 );
