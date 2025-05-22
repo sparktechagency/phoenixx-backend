@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 import colors from 'colors';
 import bcrypt from 'bcrypt';
-import { USER_ROLES } from '../enums/user';
-import config from '../config';
-import { User } from '../app/modules/user/user.model';
-import { logger } from '../shared/logger';
+import { USER_ROLES } from '../../enums/user';
+import config from '../../config';
+import { User } from '../modules/user/user.model';
+import { logger } from '../../shared/logger';
 
 const usersData = [
       {
