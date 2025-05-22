@@ -8,7 +8,7 @@ import { logger } from '../../shared/logger';
 
 const usersData = [
       {
-            name: 'Administrator',
+            name: config.super_admin_name,
             userName: config.super_admin_name,
             email: config.super_admin_email,
             role: USER_ROLES.SUPER_ADMIN,
