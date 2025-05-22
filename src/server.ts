@@ -5,7 +5,6 @@ import app from './app';
 import config from './config';
 import { socketHelper } from './helpers/socketHelper';
 import { errorLogger, logger } from './shared/logger';
-import seedSuperAdmin from './app/DB/superAdmin.seed';
 import seedContactUs from './app/DB/contactUs.seed';
 
 //uncaught exception
@@ -19,7 +18,7 @@ async function main() {
       try {
             mongoose.connect(config.database_url as string);
             logger.info(colors.bgCyan('🚀 Database connected successfully'));
-            await seedSuperAdmin();
+            // await seedSuperAdmin();
             await seedContactUs();
 
             const port = typeof config.port === 'number' ? config.port : Number(config.port);
