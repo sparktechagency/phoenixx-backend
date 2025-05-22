@@ -10,7 +10,7 @@
         "prettier:check": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
         "prettier:fix": "prettier --write .",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "seed": "ts-node src/DB/ssuperAdmin.seed.ts"
+        "seed": "ts-node src/DB/superAdmin.seed.ts"
     },
     "keywords": [],
     "author": "",
