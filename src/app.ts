@@ -54,6 +54,7 @@ app.use(
             origin: [
                   'https://mehor.com',
                   'http://10.0.60.110:3001',
+                  'http://10.0.60.210:4174',
                   'https://dashboard.mehor.com',
                   'http://168.231.64.178:3000',
                   'http://168.231.64.178:3001',
