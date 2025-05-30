@@ -5,6 +5,10 @@ const notificationSchema = new Schema<INotification>(
       {
             recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
             sender: { type: Schema.Types.ObjectId, ref: 'User' },
+            id: {
+                  type: String,
+                  default: '',
+            },
             type: { type: String, enum: ['info', 'warning', 'success', 'error'], default: 'info' },
             recipientRole: { type: String, enum: ['admin', 'user'], default: 'user' },
             message: { type: String, required: true },
