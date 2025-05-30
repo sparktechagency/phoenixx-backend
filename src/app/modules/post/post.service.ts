@@ -46,7 +46,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
       if (result.author) {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
-                  id: result._id.toString(),
+                  postId: result._id.toString(),
                   message: `Hi, ${user.userName} Your post has created successfully`,
                   read: false,
             });

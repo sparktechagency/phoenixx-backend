@@ -5,7 +5,8 @@ export type INotification = {
       sender?: Types.ObjectId;
       type: 'info' | 'warning' | 'success' | 'error';
       recipientRole: 'admin' | 'user';
-      id: string;
+      postId: string;
+      commentId: string;
       message: string;
       link?: string;
       read: boolean;
