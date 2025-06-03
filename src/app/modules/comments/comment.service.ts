@@ -41,6 +41,7 @@ const createCommentIntoDB = async (payload: IComment) => {
                   const newNotification = await NotificationService.createNotificationToDB({
                         recipient: new Types.ObjectId(postOwner._id),
                         commentId: newComment._id.toString(),
+                        postId: payload.postId.toString(),
                         message: `${commenter.userName} commented in your post`,
                         read: false,
                   });
