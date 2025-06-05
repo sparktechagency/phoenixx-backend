@@ -30,6 +30,9 @@ const fileUploadHandler = () => {
                         case 'media':
                               uploadDir = path.join(baseUploadDir, 'medias');
                               break;
+                        case 'darkImage':
+                              uploadDir = path.join(baseUploadDir, 'darkImages');
+                              break;
                         case 'doc':
                               uploadDir = path.join(baseUploadDir, 'docs');
                               break;
@@ -49,11 +52,14 @@ const fileUploadHandler = () => {
 
       //file filter
       const filterFilter = (req: Request, file: any, cb: FileFilterCallback) => {
-            if (file.fieldname === 'image') {
+            if (file.fieldname === 'image' || file.fieldname === 'darkImage') {
                   if (
                         file.mimetype === 'image/jpeg' ||
                         file.mimetype === 'image/png' ||
-                        file.mimetype === 'image/jpg'
+                        file.mimetype === 'image/jpg' ||
+                        file.mimetype === 'darkImage/jpeg' ||
+                        file.mimetype === 'darkImage/png' ||
+                        file.mimetype === 'darkImage/jpg'
                   ) {
                         cb(null, true);
                   } else {
@@ -84,6 +90,7 @@ const fileUploadHandler = () => {
             fileFilter: filterFilter,
       }).fields([
             { name: 'image', maxCount: 3 },
+            { name: 'darkImage', maxCount: 3 },
             { name: 'media', maxCount: 3 },
             { name: 'doc', maxCount: 3 },
       ]);

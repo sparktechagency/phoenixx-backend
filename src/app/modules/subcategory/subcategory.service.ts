@@ -7,6 +7,9 @@ const createSubcategoryIntoDB = async (data: ISubcategory, files: any) => {
       if (files && 'image' in files && files.image[0]) {
             data.image = `/images/${files.image[0].filename}`;
       }
+      if (files && 'darkImage' in files && files.darkImage[0]) {
+            data.darkImage = `/images/${files.darkImage[0].filename}`;
+      }
       const result = await Subcategory.create(data);
       if (!result) {
             throw new Error('Failed to create subcategory');

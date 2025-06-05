@@ -6,6 +6,7 @@ const categorySchema = new Schema<ICategory>(
             name: { type: String, required: true },
             description: { type: String },
             image: { type: String, required: true },
+            darkImage: { type: String, required: true },
             status: { type: String, enum: ['active', 'deleted'], default: 'active' },
       },
       {

@@ -5,5 +5,6 @@ export type ISubcategory = {
       name: string;
       description: string;
       image: string;
+      darkImage: string;
       status: 'active' | 'deleted';
 };

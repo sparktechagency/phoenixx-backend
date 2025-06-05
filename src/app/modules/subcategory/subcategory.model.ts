@@ -11,6 +11,7 @@ const subcategorySchema = new Schema<ISubcategory>(
             name: { type: String, required: true, maxlength: 20 },
             description: { type: String, required: true },
             image: { type: String, required: true },
+            darkImage: { type: String, required: true },
             status: { type: String, enum: ['active', 'deleted'], default: 'active' },
       },
       { timestamps: true }
