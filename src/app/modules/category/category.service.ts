@@ -14,7 +14,7 @@ const createCategoryIntoDB = async (data: ICategory, files: any) => {
             data.image = `/images/${files.image[0].filename}`;
       }
       if (files && 'darkImage' in files && files.darkImage[0]) {
-            data.darkImage = `/darkImage/${files.darkImage[0].filename}`;
+            data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
       }
       const result = await Category.create(data);
       if (!result) {
