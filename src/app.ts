@@ -60,6 +60,8 @@ app.use(
                   'http://168.231.64.178:3001',
                   'http://168.231.64.178:4175',
                   'http://localhost:4175',
+                  'http://localhost:3000',
+                  'http://10.0.60.110:3001',
             ],
             credentials: true,
       })
