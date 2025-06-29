@@ -205,7 +205,7 @@ const getAllPostByUserIdFromDB = async (userId: string) => {
       const result = await Post.find({ author: userId })
             .populate({
                   path: 'author',
-                  select: 'userName email profile',
+                  select: 'userName name email profile',
             })
             .populate({
                   path: 'comments',

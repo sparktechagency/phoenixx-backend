@@ -12,10 +12,6 @@ const transporter = nodemailer.createTransport({
             pass: config.email.pass,
       },
 });
-console.log('email host', config.email.host);
-console.log('app port', Number(config.email.port));
-console.log('app email', config.email.user);
-console.log('app pass', config.email.pass);
 
 const sendEmail = async (values: ISendEmail) => {
       try {
