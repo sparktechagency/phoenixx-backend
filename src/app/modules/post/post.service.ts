@@ -43,9 +43,6 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
             payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
       }
       const result = await Post.create(payload);
-      console.log('result', result);
-      console.log('postId', result._id);
-      console.log('postId', result._id.toString());
       if (result.author) {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
