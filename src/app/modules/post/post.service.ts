@@ -47,6 +47,8 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
                   postId: result._id.toString(),
+                  type: 'post',
+                  title: 'New Post Created',
                   message: `Hi, ${user.userName} Your post has created successfully`,
                   read: false,
             });
@@ -92,6 +94,7 @@ const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any)
       const result = await Post.findByIdAndUpdate(id, payload, {
             new: true,
       });
+
       return result;
 };
 const likePostIntoDB = async (id: string, userId: string) => {
@@ -109,6 +112,25 @@ const likePostIntoDB = async (id: string, userId: string) => {
             existingPost.likes.push(userId as any);
       }
       await existingPost.save();
+      const findUser = await User.findById(userId);
+      if (!findUser) {
+            throw new Error('User not found');
+      }
+      if (existingPost.author) {
+            const newNotification = await NotificationService.createNotificationToDB({
+                  recipient: new Types.ObjectId(existingPost.author.toString()),
+                  postId: existingPost._id.toString(),
+                  type: 'like',
+                  title: 'Like Post',
+                  message: `${findUser.userName} like your post`,
+                  read: false,
+            });
+            //@ts-ignore
+            const io = global.io;
+            if (io) {
+                  io.emit(`notification::${existingPost.author.toString()}`, newNotification);
+            }
+      }
       return existingPost;
 };
 

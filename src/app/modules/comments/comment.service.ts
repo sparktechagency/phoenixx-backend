@@ -42,6 +42,8 @@ const createCommentIntoDB = async (payload: IComment) => {
                         recipient: new Types.ObjectId(postOwner._id),
                         commentId: newComment._id.toString(),
                         postId: payload.postId.toString(),
+                        type: 'comment',
+                        title: 'Comment Post',
                         message: `${commenter.userName} commented in your post`,
                         read: false,
                   });
@@ -104,11 +106,28 @@ const replayCommentIntoDB = async (commentId: string, payload: Partial<IComment>
             author: payload.author,
             postId: payload.postId,
       });
-
+      const findUser = await User.findById(payload.author);
+      if (!findUser) {
+            throw new Error('User not found');
+      }
       await Comment.findByIdAndUpdate(commentId, {
             $push: { replies: result._id },
       });
-
+      if (existingComment.author) {
+            const newNotification = await NotificationService.createNotificationToDB({
+                  recipient: new Types.ObjectId(existingComment.author.toString()),
+                  commentId: existingComment.author.toString(),
+                  type: 'reply',
+                  title: 'Reply Comment',
+                  message: `${findUser.userName} reply your comment`,
+                  read: false,
+            });
+            //@ts-ignore
+            const io = global.io;
+            if (io) {
+                  io.emit(`notification::${result.author.toString()}`, newNotification);
+            }
+      }
       return result;
 };
 
