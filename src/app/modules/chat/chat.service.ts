@@ -136,7 +136,7 @@ const getAllChatsFromDB = async (
         const otherParticipants = await User.find({
           _id: { $in: otherParticipantIds },
         })
-          .select('_id image fullName email')
+          .select('_id profile userName name email')
           .lean();
 
         // FIXED: Same unread count calculation
