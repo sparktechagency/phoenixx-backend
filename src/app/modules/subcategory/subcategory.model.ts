@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { Aggregate, model, Schema } from 'mongoose';
 import { ISubcategory } from './subcategory.interface';
 
 const subcategorySchema = new Schema<ISubcategory>(
@@ -16,5 +16,17 @@ const subcategorySchema = new Schema<ISubcategory>(
       },
       { timestamps: true }
 );
-
+// filter out deleted documents
+subcategorySchema.pre('find', function (next) {
+      this.find({ status: { $ne: "deleted" } });
+      next();
+});
+subcategorySchema.pre('findOne', function (next) {
+      this.find({ status: { $ne: "deleted" } });
+      next();
+});
+subcategorySchema.pre('aggregate', function (this: Aggregate<ISubcategory>, next) {
+      this.pipeline().unshift({ $match: { status: { $ne: "deleted" } } });
+      next();
+});
 export const Subcategory = model<ISubcategory>('Subcategory', subcategorySchema);

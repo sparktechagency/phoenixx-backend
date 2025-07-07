@@ -59,12 +59,10 @@ const apiRoutes = [
             path: '/save-post',
             route: SavePostRoutes,
       },
-
       {
             path: '/packages',
             route: PackageRoutes,
       },
-
       {
             path: '/subscriptions',
             route: SubscriptionRoute,

@@ -14,7 +14,7 @@ const populateReplies = {
       populate: [
             {
                   path: 'author',
-                  select: 'userName email profile',
+                  select: 'userName name email profile',
             },
             {
                   path: 'replies',
@@ -22,7 +22,7 @@ const populateReplies = {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         {
                               path: 'replies',
@@ -49,7 +49,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                   postId: result._id.toString(),
                   type: 'post',
                   title: 'New Post Created',
-                  message: `Hi, ${user.userName} Your post has created successfully`,
+                  message: `Your post has created successfully`,
                   read: false,
             });
             //@ts-ignore
@@ -140,7 +140,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
       const result = await postQuery.modelQuery
             .populate({
                   path: 'author',
-                  select: 'userName email profile',
+                  select: 'userName name email profile',
             })
             .populate({
                   path: 'category',
@@ -157,7 +157,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         populateReplies,
                   ],
@@ -183,7 +183,7 @@ const getMyPostsFromDB = async (userId: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         populateReplies,
                   ],
@@ -195,7 +195,7 @@ const getSinglePostFromDB = async (id: string) => {
 
             .populate({
                   path: 'author',
-                  select: 'userName email profile',
+                  select: 'userName name email profile',
             })
             .populate({
                   path: 'comments',
@@ -203,7 +203,7 @@ const getSinglePostFromDB = async (id: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         populateReplies,
                   ],
@@ -232,7 +232,7 @@ const getAllPostByUserIdFromDB = async (userId: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         populateReplies,
                   ],

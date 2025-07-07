@@ -60,6 +60,10 @@ const updateSubcategoryByIdFromDB = async (id: string, data: ISubcategory, files
             data.image = `/images/${files.image[0].filename}`;
             unlinkFile(existingSubcategory.image);
       }
+      if (files && 'darkImage' in files && files.darkImage[0]) {
+            data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
+            unlinkFile(existingSubcategory.darkImage);
+      }
 
       const result = await Subcategory.findOneAndUpdate({ _id: id }, data, { new: true, upsert: true });
       if (!result) {

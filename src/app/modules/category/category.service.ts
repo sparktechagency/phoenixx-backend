@@ -102,6 +102,11 @@ const updateCategoryByIdFromDB = async (id: string, data: ICategory, files: any)
             data.image = `/images/${files.image[0].filename}`;
             unlinkFile(existingCategory.image);
       }
+      if (files && 'darkImage' in files && files.darkImage[0]) {
+            data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
+            unlinkFile(existingCategory.darkImage);
+      }
+      
 
       const result = await Category.findOneAndUpdate({ _id: id }, data, { new: true, upsert: true });
       if (!result) {
