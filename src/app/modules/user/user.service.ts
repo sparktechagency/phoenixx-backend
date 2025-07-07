@@ -56,6 +56,7 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
 
       const notification = await Notification.create({
             recipientRole: 'admin',
+            title: "New User Registration",
             message: `A new user has been created: ${createUser.userName}`,
             type: 'info',
             recipient: admin!._id,
