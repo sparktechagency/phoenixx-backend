@@ -6,5 +6,5 @@ export type ICategory = Document & {
       description?: string;
       image: string;
       darkImage: string;
-      status: 'active' | 'delete';
+      status: 'active' | 'deleted';
 };

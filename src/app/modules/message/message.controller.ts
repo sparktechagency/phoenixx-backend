@@ -13,6 +13,11 @@ const sendMessage = catchAsync(async (req, res) => {
       if (files?.image?.length > 0) {
             req.body.images = files.image?.map((file: any) => `/images/${file.filename}`);
       }
+      files?.image?.length > 0 ? req.body.type = 'image' : req.body.type = 'text';
+
+      if (files.image?.length > 0 && req.body?.text) {
+            req.body.type = 'both';
+      }
       req.body.sender = id;
       req.body.chatId = chatId;
       const message = await MessageService.sendMessageToDB(req.body);
