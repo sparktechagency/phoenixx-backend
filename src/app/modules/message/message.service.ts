@@ -193,8 +193,7 @@ const getMessagesFromDB = async (
   const formattedMessages = response.map((message) => ({
     ...message.toObject(),
     isDeleted: message.isDeleted,
-    text: message.isDeleted ? 'This message has been deleted.' : message.text,
-    read: true, // Mark as read in response since we just marked them as read
+    text: message.isDeleted ? 'This message has been deleted.' : message.text
   }));
 
   const formattedPinnedMessages = pinnedMessages.map((message) => ({
