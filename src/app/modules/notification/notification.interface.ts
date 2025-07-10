@@ -3,7 +3,18 @@ import { Types } from 'mongoose';
 export type INotification = {
       recipient: Types.ObjectId;
       sender?: Types.ObjectId;
-      type: 'info' | 'warning' | 'success' | 'error' | 'comment' | 'like' | 'follow' | 'post' | 'reply';
+      type:
+            | 'info'
+            | 'warning'
+            | 'success'
+            | 'error'
+            | 'comment'
+            | 'like'
+            | 'follow'
+            | 'post'
+            | 'reply'
+            | 'report'
+            | 'warning';
       recipientRole: 'admin' | 'user';
       postId?: string;
       commentId?: string;

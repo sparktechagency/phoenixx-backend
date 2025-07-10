@@ -13,7 +13,11 @@ const notificationSchema = new Schema<INotification>(
                   type: String,
                   default: '',
             },
-            type: { type: String, enum: ['comment', 'like', 'follow', 'error', 'success', 'info', 'post', 'reply'], default: 'info' },
+            type: {
+                  type: String,
+                  enum: ['comment', 'report', 'like', 'follow', 'error', 'success', 'info', 'post', 'reply', 'warning'],
+                  default: 'info',
+            },
             title: { type: String, required: true },
             recipientRole: { type: String, enum: ['admin', 'user'], default: 'user' },
             message: { type: String, required: true },

@@ -21,16 +21,16 @@ const createReport = async (payload: IReport) => {
 
       const adminNotification = await Notification.create({
             recipientRole: 'admin',
-            title: "Report Post",
+            title: 'Report Post',
             message: `A user has reported a post ${post.title}`,
-            type: 'info',
+            type: 'report',
             recipient: payload.reporterId,
       });
       const userNotification = await Notification.create({
             recipientRole: 'user',
-            title: "Report Post",
+            title: 'Report Post',
             message: `Your post ${post.title} has been reported`,
-            type: 'info',
+            type: 'report',
             recipient: post.author,
       });
       //@ts-ignore
@@ -104,9 +104,9 @@ const giveWarningReportedPostAuthorToDB = async (reportId: string, message: stri
       };
       const notification = await Notification.create({
             recipientRole: 'user',
-            title: "Post Warning",
+            title: 'Post Warning',
             message: `Your post ${post.title} has been reported`,
-            type: 'info',
+            type: 'warning',
             recipient: post.author,
       });
       //@ts-ignore
@@ -116,7 +116,6 @@ const giveWarningReportedPostAuthorToDB = async (reportId: string, message: stri
       }
       const resentOtpTemplate = emailTemplate.reportWarning(reportData);
       emailHelper.sendEmail(resentOtpTemplate);
-
 
       const reportEmailTemplate = emailTemplate.reportWarning(reportData);
       await emailHelper.sendEmail(reportEmailTemplate);
