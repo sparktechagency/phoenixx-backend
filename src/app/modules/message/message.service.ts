@@ -158,7 +158,7 @@ const getMessagesFromDB = async (
     .populate({ path: 'pinnedBy', select: 'userName name' })
     .skip(skip)
     .limit(limitInt)
-    .sort({ createdAt: -1 });
+    .sort();
 
   // Mark messages as read for the current user (only messages not sent by current user)
   const messageIds = response
