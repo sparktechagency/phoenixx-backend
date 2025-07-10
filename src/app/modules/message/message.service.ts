@@ -72,12 +72,12 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 
   // Get populated message for socket
   const populatedMessage = await Message.findById(response._id)
-    .populate('sender', 'fullName email profile')
+    .populate('sender', 'userName name email profile')
     .lean();
 
   // Get updated chat with populated data for chat list update
   const populatedChat = await Chat.findById(response?.chatId)
-    .populate('participants', 'fullName email profile')
+    .populate('participants', 'userName name email profile')
     .populate('lastMessage')
     .lean();
 
@@ -152,10 +152,10 @@ const getMessagesFromDB = async (
   const response = await Message.find({ chatId })
     .populate({
       path: 'sender',
-      select: 'fullName email profile',
+      select: 'userName name email profile',
     })
-    .populate({ path: 'reactions.userId', select: 'fullName' })
-    .populate({ path: 'pinnedBy', select: 'fullName' })
+    .populate({ path: 'reactions.userId', select: 'userName name' })
+    .populate({ path: 'pinnedBy', select: 'userName name' })
     .skip(skip)
     .limit(limitInt)
     .sort({ createdAt: -1 });
@@ -185,9 +185,9 @@ const getMessagesFromDB = async (
   })
     .populate({
       path: 'sender',
-      select: 'fullName email profile',
+      select: 'userName name email profile',
     })
-    .populate({ path: 'pinnedBy', select: 'fullName' })
+    .populate({ path: 'pinnedBy', select: 'userName name' })
     .sort({ pinnedAt: -1 });
 
   const formattedMessages = response.map((message) => ({
