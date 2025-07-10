@@ -121,17 +121,7 @@ const getMessagesFromDB = async (
 ): Promise<{
       messages: IMessage[];
       pinnedMessages: IMessage[];
-      pagination: { total: number; page: number; limit: number; totalPage: number };
 }> => {
-      const { page, limit } = query;
-
-      const pageInt = Math.max(parseInt(String(page || '1'), 10) || 1, 1);
-      const limitInt = Math.min(Math.max(parseInt(String(limit || '10'), 10) || 10, 1), 100);
-
-      const skip = (pageInt - 1) * limitInt;
-
-      const total = await Message.countDocuments({ chatId });
-
       const response = await Message.find({ chatId })
             .populate({
                   path: 'sender',
@@ -139,8 +129,6 @@ const getMessagesFromDB = async (
             })
             .populate({ path: 'reactions.userId', select: 'userName name' })
             .populate({ path: 'pinnedBy', select: 'userName name' })
-            .skip(skip)
-            .limit(limitInt)
             .sort({ createdAt: -1 });
 
       // Mark messages as read for the current user (only messages not sent by current user)
@@ -184,17 +172,9 @@ const getMessagesFromDB = async (
             text: message.isDeleted ? 'This message has been deleted.' : message.text,
       }));
 
-      const totalPage = Math.ceil(total / limitInt);
-
       return {
             messages: formattedMessages,
             pinnedMessages: formattedPinnedMessages,
-            pagination: {
-                  total,
-                  page: pageInt,
-                  limit: limitInt,
-                  totalPage,
-            },
       };
 };
 
