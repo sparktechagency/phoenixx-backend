@@ -117,7 +117,6 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 const getMessagesFromDB = async (
       chatId: string,
       userId: string, // Add userId parameter
-      query: Record<string, unknown>
 ): Promise<{
       messages: IMessage[];
       pinnedMessages: IMessage[];

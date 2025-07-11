@@ -57,22 +57,13 @@ const getMessages = catchAsync(async (req, res) => {
       // Mark messages as read when user opens the chat
       await ChatService.markChatAsRead(id, chatId);
 
-      const result = await MessageService.getMessagesFromDB(chatId, id, req.query);
+      const result = await MessageService.getMessagesFromDB(chatId, id);
 
       sendResponse(res, {
             statusCode: StatusCodes.OK,
             success: true,
             message: 'Messages retrieved successfully',
-            data: {
-                  messages: result.messages,
-                  pinnedMessages: result.pinnedMessages,
-            },
-            pagination: {
-                  limit: result.pagination.limit,
-                  page: result.pagination.page,
-                  total: result.pagination.total,
-                  totalPage: result.pagination.totalPage,
-            },
+           data:result,
       });
 });
 
