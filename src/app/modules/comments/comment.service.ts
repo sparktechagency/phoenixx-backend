@@ -117,6 +117,7 @@ const replayCommentIntoDB = async (commentId: string, payload: Partial<IComment>
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(existingComment.author.toString()),
                   commentId: existingComment.author.toString(),
+                  postId: existingComment.postId.toString(),
                   type: 'reply',
                   title: 'Reply Comment',
                   message: `${findUser.userName} reply your comment`,
