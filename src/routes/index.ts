@@ -22,6 +22,7 @@ import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route';
 import { PackageRoutes } from '../app/modules/package/package.route';
 import { SubscriptionRoute } from '../app/modules/subscription/subscription.route';
 import { WebsiteLogoRoutes } from '../app/modules/websiteLogo/websiteLogo.route';
+import { FollowRoute } from '../app/modules/follow/follow.route';
 
 const router = express.Router();
 
@@ -66,6 +67,10 @@ const apiRoutes = [
       {
             path: '/subscriptions',
             route: SubscriptionRoute,
+      },
+      {
+            path: '/follow',
+            route: FollowRoute,
       },
       {
             path: '/chats',
