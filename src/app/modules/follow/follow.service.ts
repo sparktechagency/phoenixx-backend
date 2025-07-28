@@ -40,9 +40,9 @@ const isUserSubscribed = async (id: string, userId: string) => {
       // Fetch subscriptions of the user (you only need to check if the specific user is in the list)
       const subscriptions = await Follow.find({ subscriber: userId }).populate('subscribedTo', 'name');
       // Check if the user with the specific id is subscribed
-      const isSubscribed = subscriptions.some((sub) => sub.subscribedTo.toString() === id.toString());
+      // const isSubscribed = subscriptions.some((sub) => sub.subscribedTo.toString() === id.toString());
       // Only return whether the user is subscribed, no need to return the full list of subscriptions
-      return isSubscribed;
+      return subscriptions;
 };
 
 export const FollowService = {
