@@ -5,12 +5,72 @@ import { IComment } from './comment.interface';
 import { Comment } from './comment.model';
 import { User } from '../user/user.model';
 
+// const createCommentIntoDB = async (payload: IComment) => {
+//       const session = await mongoose.startSession();
+//       session.startTransaction();
+
+//       try {
+//             const existingPost = await Post.findById(payload.postId).session(session);
+//             if (!existingPost) {
+//                   throw new Error('This Post is not found');
+//             }
+
+//             const [commenter, postOwner] = await Promise.all([
+//                   User.findById(payload.author),
+//                   User.findById(existingPost.author),
+//             ]);
+
+//             if (!commenter) {
+//                   throw new Error('Commenter not found');
+//             }
+//             if (!postOwner) {
+//                   throw new Error('Post Author not found');
+//             }
+
+//             const result = await Comment.create([payload], { session });
+//             const newComment = result[0];
+//             await Post.findByIdAndUpdate(
+//                   payload.postId,
+//                   { $push: { comments: newComment._id } },
+//                   { session, new: true }
+//             );
+
+//             //create notification
+
+//             if (postOwner._id.toString() !== commenter._id.toString()) {
+//                   const newNotification = await NotificationService.createNotificationToDB({
+//                         recipient: new Types.ObjectId(postOwner._id),
+//                         commentId: newComment._id.toString(),
+//                         postId: payload.postId.toString(),
+//                         type: 'comment',
+//                         title: 'Comment Post',
+//                         message: `${commenter.userName} commented in your post`,
+//                         read: false,
+//                   });
+//                   //@ts-ignore
+//                   const io = global.io;
+//                   if (io) {
+//                         io.emit(`notification::${postOwner._id.toString()}`, newNotification);
+//                   }
+//             }
+
+//             await session.commitTransaction();
+//             return newComment;
+//       } catch (error) {
+//             await session.abortTransaction();
+//             throw error;
+//       } finally {
+//             session.endSession();
+//       }
+// };
 const createCommentIntoDB = async (payload: IComment) => {
       const session = await mongoose.startSession();
       session.startTransaction();
 
       try {
-            const existingPost = await Post.findById(payload.postId).session(session);
+            const existingPost = await Post.findById(payload.postId)
+                  .populate('comments')
+                  .session(session);
             if (!existingPost) {
                   throw new Error('This Post is not found');
             }
@@ -35,23 +95,69 @@ const createCommentIntoDB = async (payload: IComment) => {
                   { session, new: true }
             );
 
-            //create notification
-
+            // Notification logic
+            const notifications = [];
+            
+            // 1. Notify post owner (if not commenting on own post)
             if (postOwner._id.toString() !== commenter._id.toString()) {
-                  const newNotification = await NotificationService.createNotificationToDB({
+                  const postOwnerNotification = await NotificationService.createNotificationToDB({
                         recipient: new Types.ObjectId(postOwner._id),
                         commentId: newComment._id.toString(),
                         postId: payload.postId.toString(),
                         type: 'comment',
-                        title: 'Comment Post',
-                        message: `${commenter.userName} commented in your post`,
+                        title: 'New Comment on Your Post',
+                        message: `${commenter.userName} commented on your post`,
                         read: false,
                   });
-                  //@ts-ignore
-                  const io = global.io;
-                  if (io) {
-                        io.emit(`notification::${postOwner._id.toString()}`, newNotification);
+                  notifications.push({
+                        userId: postOwner._id.toString(),
+                        notification: postOwnerNotification
+                  });
+            }
+
+            // 2. Notify other commenters on the same post (optional feature)
+            if (existingPost.comments && existingPost.comments.length > 0) {
+                  // Get unique commenters from previous comments
+                  const previousComments = await Comment.find({
+                        postId: payload.postId,
+                        author: { $nin: [commenter._id, postOwner._id] } // Exclude current commenter and post owner
+                  }).populate('author', '_id userName').session(session);
+
+                  const uniqueCommenters = new Set();
+                  const previousCommenterNotifications = [];
+
+                  for (const comment of previousComments) {
+                        const commenterId = (comment.author as any)._id.toString();
+                        if (!uniqueCommenters.has(commenterId)) {
+                              uniqueCommenters.add(commenterId);
+                              
+                              const commenterNotification = await NotificationService.createNotificationToDB({
+                                    recipient: new Types.ObjectId(comment.author.toString()),
+                                    commentId: newComment._id.toString(),
+                                    postId: payload.postId.toString(),
+                                    type: 'comment_reply',
+                                    title: 'New Comment on a Post You Commented On',
+                                    message: `${commenter.userName} also commented on ${postOwner.userName}'s post`,
+                                    read: false,
+                              });
+                              
+                              previousCommenterNotifications.push({
+                                    userId: commenterId,
+                                    notification: commenterNotification
+                              });
+                        }
                   }
+                  
+                  notifications.push(...previousCommenterNotifications);
+            }
+
+            // Emit real-time notifications
+            //@ts-ignore
+            const io = global.io;
+            if (io && notifications.length > 0) {
+                  notifications.forEach(({ userId, notification }) => {
+                        io.emit(`notification::${userId}`, notification);
+                  });
             }
 
             await session.commitTransaction();
@@ -63,7 +169,6 @@ const createCommentIntoDB = async (payload: IComment) => {
             session.endSession();
       }
 };
-
 const getMyCommentedPost = async (userId: string) => {
       // First get unique postIds from user's comments
       const userComments = await Comment.find({ author: userId }).distinct('postId');

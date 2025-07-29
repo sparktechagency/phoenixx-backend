@@ -16,7 +16,8 @@ export type INotification = {
             | 'report'
             | 'warning'
             | 'new_post_from_following'
-            | 'new_follower';
+            | 'new_follower'
+            | 'comment_reply';
       recipientRole: 'admin' | 'user';
       postId?: string;
       commentId?: string;

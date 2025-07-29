@@ -28,6 +28,7 @@ const notificationSchema = new Schema<INotification>(
                         'warning',
                         'new_post_from_following',
                         'new_follower',
+                        'comment_reply',
                   ],
                   default: 'info',
             },
