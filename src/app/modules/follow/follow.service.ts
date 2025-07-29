@@ -1,11 +1,22 @@
+import { Types } from 'mongoose';
 import ApiError from '../../../errors/ApiError';
 import { Follow } from './follow.model';
+import { NotificationService } from '../notification/notification.service';
+import { User } from '../user/user.model';
 
 const subscribe = async (subscriberId: string, subscribedToId: string) => {
       // Check if already subscribed
       const existingSubscription = await Follow.findOne({ subscriber: subscriberId, subscribedTo: subscribedToId });
       if (existingSubscription) {
             throw new ApiError(400, 'You are already subscribed to this user.');
+      }
+
+      // Get user details for notification
+      const subscriber = await User.findById(subscriberId);
+      const subscribedToUser = await User.findById(subscribedToId);
+
+      if (!subscriber || !subscribedToUser) {
+            throw new ApiError(404, 'User not found');
       }
 
       // Create a new subscription
@@ -15,6 +26,23 @@ const subscribe = async (subscriberId: string, subscribedToId: string) => {
       });
 
       await follow.save();
+
+      // Create notification for the user being followed
+      const newFollowerNotification = await NotificationService.createNotificationToDB({
+            recipient: new Types.ObjectId(subscribedToId),
+            type: 'new_follower',
+            title: 'New Follower',
+            message: `${subscriber.name} started following you`,
+            read: false,
+      });
+
+      // Emit real-time notification
+      //@ts-ignore
+      const io = global.io;
+      if (io) {
+            io.emit(`notification::${subscribedToId}`, newFollowerNotification);
+      }
+
       return follow;
 };
 // Unsubscribe from a user

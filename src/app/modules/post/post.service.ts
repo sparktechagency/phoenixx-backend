@@ -7,6 +7,7 @@ import { NotificationService } from '../notification/notification.service';
 import mongoose, { Types } from 'mongoose';
 import { User } from '../user/user.model';
 import { Report } from '../report/report.model';
+import { Follow } from '../follow/follow.model';
 
 const populateReplies = {
       path: 'replies',
@@ -42,9 +43,12 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
       if (files?.image?.length > 0) {
             payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
       }
+
       const result = await Post.create(payload);
+
       if (result.author) {
-            const newNotification = await NotificationService.createNotificationToDB({
+            // Notification for the post author
+            const authorNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
                   postId: result._id.toString(),
                   type: 'post',
@@ -52,10 +56,47 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                   message: `Your post has created successfully`,
                   read: false,
             });
-            //@ts-ignore
-            const io = global.io;
-            if (io) {
-                  io.emit(`notification::${result.author.toString()}`, newNotification);
+
+            // Find all followers of the post author
+            const followers = await Follow.find({ subscribedTo: result.author }).populate('subscriber', 'name');
+
+            // Create notifications for all followers
+            if (followers.length > 0) {
+                  const followerNotifications = await Promise.all(
+                        followers.map(async (follow) => {
+                              return await NotificationService.createNotificationToDB({
+                                    recipient: new Types.ObjectId(follow.subscriber.toString()),
+                                    postId: result._id.toString(),
+                                    type: 'new_post_from_following',
+                                    title: 'New Post from Someone You Follow',
+                                    message: `${user.name} has created a new post`,
+                                    read: false,
+                              });
+                        })
+                  );
+
+                  // Emit real-time notifications
+                  //@ts-ignore
+                  const io = global.io;
+                  if (io) {
+                        // Notify the author
+                        io.emit(`notification::${result.author.toString()}`, authorNotification);
+
+                        // Notify all followers
+                        followers.forEach((follow, index) => {
+                              io.emit(
+                                    `notification::${(follow.subscriber as any)._id.toString()}`,
+                                    followerNotifications[index]
+                              );
+                        });
+                  }
+            } else {
+                  // If no followers, just emit notification to author
+                  //@ts-ignore
+                  const io = global.io;
+                  if (io) {
+                        io.emit(`notification::${result.author.toString()}`, authorNotification);
+                  }
             }
       }
 
