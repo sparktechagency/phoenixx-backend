@@ -32,7 +32,6 @@ const markChatAsRead = catchAsync(async (req, res) => {
 });
 const markMessagesAsIconViewed  = catchAsync(async (req, res) => {
   const user: any = req?.user;
-
   const result = await ChatService.markMessagesAsIconViewed(user.id);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
