@@ -277,123 +277,6 @@ const deleteMessage = async (userId: string, messageId: string) => {
 };
 
 // New feature: Pin/Unpin message
-// const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' | 'unpin') => {
-//       try {
-//             const message = await Message.findById(messageId);
-//             if (!message) {
-//                   throw new ApiError(StatusCodes.NOT_FOUND, 'Message not found');
-//             }
-
-//             // Check if user is participant in the chat
-//             const chat = await Chat.findById(message.chatId);
-//             if (!chat || !chat.participants.some((p) => p.toString() === userId)) {
-//                   throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to pin messages in this chat');
-//             }
-
-//             // Check if users are blocked
-//             const isBlocked = chat.blockedUsers?.some(
-//                   (block: any) =>
-//                         (block.blocker.toString() === userId &&
-//                               block.blocked.toString() === message.sender.toString()) ||
-//                         (block.blocked.toString() === userId && block.blocker.toString() === message.sender.toString())
-//             );
-
-//             if (isBlocked) {
-//                   throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot pin messages from blocked users');
-//             }
-
-//             if (action === 'pin') {
-//                   // Check if message is already pinned
-//                   if (message.isPinned) {
-//                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Message is already pinned');
-//                   }
-
-//                   // Check pinned messages limit (optional - limit to 10 pinned messages per chat)
-//                   const pinnedCount = await Message.countDocuments({
-//                         chatId: message.chatId,
-//                         isPinned: true,
-//                         isDeleted: false,
-//                   });
-
-//                   if (pinnedCount >= 10) {
-//                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Maximum 10 messages can be pinned per chat');
-//                   }
-
-//                   // Pin the message
-//                   const updatedMessage = await Message.findByIdAndUpdate(
-//                         messageId,
-//                         {
-//                               $set: {
-//                                     isPinned: true,
-//                                     pinnedBy: userId,
-//                                     pinnedAt: new Date(),
-//                               },
-//                         },
-//                         { new: true }
-//                   );
-
-//                   // Add to chat's pinnedMessages array
-//                   await Chat.findByIdAndUpdate(message.chatId, {
-//                         $addToSet: { pinnedMessages: messageId },
-//                   });
-
-//                   //@ts-ignore
-//                   const io = global.io;
-//                   // Notify all participants
-//                   chat.participants.forEach((participantId) => {
-//                         //@ts-ignore
-//                         io.emit(`messagePinned::${participantId}`, {
-//                               messageId,
-//                               chatId: message.chatId,
-//                               pinnedBy: userId,
-//                               message: updatedMessage,
-//                         });
-//                   });
-
-//                   return updatedMessage;
-//             } else {
-//                   // Unpin the message
-//                   if (!message.isPinned) {
-//                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Message is not pinned');
-//                   }
-
-//                   const updatedMessage = await Message.findByIdAndUpdate(
-//                         messageId,
-//                         {
-//                               $set: {
-//                                     isPinned: false,
-//                                     pinnedBy: undefined,
-//                                     pinnedAt: undefined,
-//                               },
-//                         },
-//                         { new: true }
-//                   );
-
-//                   // Remove from chat's pinnedMessages array
-//                   await Chat.findByIdAndUpdate(message.chatId, {
-//                         $pull: { pinnedMessages: messageId },
-//                   });
-
-//                   //@ts-ignore
-//                   const io = global.io;
-//                   // Notify all participants
-//                   chat.participants.forEach((participantId) => {
-//                         //@ts-ignore
-//                         io.emit(`messageUnpinned::${participantId}`, {
-//                               messageId,
-//                               chatId: message.chatId,
-//                               unpinnedBy: userId,
-//                         });
-//                   });
-
-//                   return updatedMessage;
-//             }
-//       } catch (error) {
-//             console.error('Error pinning/unpinning message:', error);
-//             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
-//       }
-// };
-// New feature: Pin/Unpin message (Only one pinned message allowed per chat)
 const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' | 'unpin') => {
       try {
             const message = await Message.findById(messageId);
@@ -425,35 +308,18 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Message is already pinned');
                   }
 
-                  // Find and unpin any existing pinned message in this chat
-                  const existingPinnedMessage = await Message.findOne({
+                  // Check pinned messages limit (optional - limit to 10 pinned messages per chat)
+                  const pinnedCount = await Message.countDocuments({
                         chatId: message.chatId,
                         isPinned: true,
                         isDeleted: false,
                   });
 
-                  let unpinnedMessage: any = null;
-                  if (existingPinnedMessage) {
-                        // Unpin the existing message
-                        unpinnedMessage = await Message.findByIdAndUpdate(
-                              existingPinnedMessage._id,
-                              {
-                                    $set: {
-                                          isPinned: false,
-                                          pinnedBy: undefined,
-                                          pinnedAt: undefined,
-                                    },
-                              },
-                              { new: true }
-                        );
-
-                        // Remove from chat's pinnedMessages array
-                        await Chat.findByIdAndUpdate(message.chatId, {
-                              $pull: { pinnedMessages: existingPinnedMessage._id },
-                        });
+                  if (pinnedCount >= 10) {
+                        throw new ApiError(StatusCodes.BAD_REQUEST, 'Maximum 10 messages can be pinned per chat');
                   }
 
-                  // Pin the new message
+                  // Pin the message
                   const updatedMessage = await Message.findByIdAndUpdate(
                         messageId,
                         {
@@ -466,28 +332,14 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
                         { new: true }
                   );
 
-                  // Add to chat's pinnedMessages array (replace existing)
+                  // Add to chat's pinnedMessages array
                   await Chat.findByIdAndUpdate(message.chatId, {
-                        $set: { pinnedMessages: [messageId] }, // Set array with single message
+                        $addToSet: { pinnedMessages: messageId },
                   });
 
                   //@ts-ignore
                   const io = global.io;
-
-                  // Notify all participants about the unpinned message (if any)
-                  if (unpinnedMessage) {
-                        chat.participants.forEach((participantId) => {
-                              //@ts-ignore
-                              io.emit(`messageUnpinned::${participantId}`, {
-                                    messageId: existingPinnedMessage?._id,
-                                    chatId: message.chatId,
-                                    unpinnedBy: userId,
-                                    autoUnpinned: true, // Flag to indicate this was auto-unpinned
-                              });
-                        });
-                  }
-
-                  // Notify all participants about the newly pinned message
+                  // Notify all participants
                   chat.participants.forEach((participantId) => {
                         //@ts-ignore
                         io.emit(`messagePinned::${participantId}`, {
@@ -495,14 +347,10 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
                               chatId: message.chatId,
                               pinnedBy: userId,
                               message: updatedMessage,
-                              previouslyPinned: unpinnedMessage ? existingPinnedMessage?._id : null,
                         });
                   });
 
-                  return {
-                        pinnedMessage: updatedMessage,
-                        unpinnedMessage: unpinnedMessage,
-                  };
+                  return updatedMessage;
             } else {
                   // Unpin the message
                   if (!message.isPinned) {
@@ -545,6 +393,158 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
       }
 };
+// New feature: Pin/Unpin message (Only one pinned message allowed per chat)
+// const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' | 'unpin') => {
+//       try {
+//             const message = await Message.findById(messageId);
+//             if (!message) {
+//                   throw new ApiError(StatusCodes.NOT_FOUND, 'Message not found');
+//             }
+
+//             // Check if user is participant in the chat
+//             const chat = await Chat.findById(message.chatId);
+//             if (!chat || !chat.participants.some((p) => p.toString() === userId)) {
+//                   throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to pin messages in this chat');
+//             }
+
+//             // Check if users are blocked
+//             const isBlocked = chat.blockedUsers?.some(
+//                   (block: any) =>
+//                         (block.blocker.toString() === userId &&
+//                               block.blocked.toString() === message.sender.toString()) ||
+//                         (block.blocked.toString() === userId && block.blocker.toString() === message.sender.toString())
+//             );
+
+//             if (isBlocked) {
+//                   throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot pin messages from blocked users');
+//             }
+
+//             if (action === 'pin') {
+//                   // Check if message is already pinned
+//                   if (message.isPinned) {
+//                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Message is already pinned');
+//                   }
+
+//                   // Find and unpin any existing pinned message in this chat
+//                   const existingPinnedMessage = await Message.findOne({
+//                         chatId: message.chatId,
+//                         isPinned: true,
+//                         isDeleted: false,
+//                   });
+
+//                   let unpinnedMessage: any = null;
+//                   if (existingPinnedMessage) {
+//                         // Unpin the existing message
+//                         unpinnedMessage = await Message.findByIdAndUpdate(
+//                               existingPinnedMessage._id,
+//                               {
+//                                     $set: {
+//                                           isPinned: false,
+//                                           pinnedBy: undefined,
+//                                           pinnedAt: undefined,
+//                                     },
+//                               },
+//                               { new: true }
+//                         );
+
+//                         // Remove from chat's pinnedMessages array
+//                         await Chat.findByIdAndUpdate(message.chatId, {
+//                               $pull: { pinnedMessages: existingPinnedMessage._id },
+//                         });
+//                   }
+
+//                   // Pin the new message
+//                   const updatedMessage = await Message.findByIdAndUpdate(
+//                         messageId,
+//                         {
+//                               $set: {
+//                                     isPinned: true,
+//                                     pinnedBy: userId,
+//                                     pinnedAt: new Date(),
+//                               },
+//                         },
+//                         { new: true }
+//                   );
+
+//                   // Add to chat's pinnedMessages array (replace existing)
+//                   await Chat.findByIdAndUpdate(message.chatId, {
+//                         $set: { pinnedMessages: [messageId] }, // Set array with single message
+//                   });
+
+//                   //@ts-ignore
+//                   const io = global.io;
+
+//                   // Notify all participants about the unpinned message (if any)
+//                   if (unpinnedMessage) {
+//                         chat.participants.forEach((participantId) => {
+//                               //@ts-ignore
+//                               io.emit(`messageUnpinned::${participantId}`, {
+//                                     messageId: existingPinnedMessage?._id,
+//                                     chatId: message.chatId,
+//                                     unpinnedBy: userId,
+//                                     autoUnpinned: true, // Flag to indicate this was auto-unpinned
+//                               });
+//                         });
+//                   }
+
+//                   // Notify all participants about the newly pinned message
+//                   chat.participants.forEach((participantId) => {
+//                         //@ts-ignore
+//                         io.emit(`messagePinned::${participantId}`, {
+//                               messageId,
+//                               chatId: message.chatId,
+//                               pinnedBy: userId,
+//                               message: updatedMessage,
+//                               previouslyPinned: unpinnedMessage ? existingPinnedMessage?._id : null,
+//                         });
+//                   });
+
+//                   return {
+//                         pinnedMessage: updatedMessage,
+//                         unpinnedMessage: unpinnedMessage,
+//                   };
+//             } else {
+//                   // Unpin the message
+//                   if (!message.isPinned) {
+//                         throw new ApiError(StatusCodes.BAD_REQUEST, 'Message is not pinned');
+//                   }
+
+//                   const updatedMessage = await Message.findByIdAndUpdate(
+//                         messageId,
+//                         {
+//                               $set: {
+//                                     isPinned: false,
+//                                     pinnedBy: undefined,
+//                                     pinnedAt: undefined,
+//                               },
+//                         },
+//                         { new: true }
+//                   );
+
+//                   // Remove from chat's pinnedMessages array
+//                   await Chat.findByIdAndUpdate(message.chatId, {
+//                         $pull: { pinnedMessages: messageId },
+//                   });
+
+//                   //@ts-ignore
+//                   const io = global.io;
+//                   // Notify all participants
+//                   chat.participants.forEach((participantId) => {
+//                         //@ts-ignore
+//                         io.emit(`messageUnpinned::${participantId}`, {
+//                               messageId,
+//                               chatId: message.chatId,
+//                               unpinnedBy: userId,
+//                         });
+//                   });
+
+//                   return updatedMessage;
+//             }
+//       } catch (error) {
+//             console.error('Error pinning/unpinning message:', error);
+//             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
+//       }
+// };
 const replyToMessage = async (payload: Partial<IMessage>) => {
       // First check if the original message exists
       const originalMessage = await Message.findById(payload.replyTo);
