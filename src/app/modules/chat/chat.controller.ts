@@ -30,6 +30,17 @@ const markChatAsRead = catchAsync(async (req, res) => {
     data: result,
   });
 });
+const markMessagesAsIconViewed  = catchAsync(async (req, res) => {
+  const user: any = req?.user;
+
+  const result = await ChatService.markMessagesAsIconViewed(user.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Chat marked as read',
+    data: result,
+  });
+});
 
 const getChats = catchAsync(async (req, res) => {
   const { id } = req.user;
@@ -103,4 +114,5 @@ export const ChatController = {
   deleteChat,
   muteUnmuteChat,
   blockUnblockUser,
+  markMessagesAsIconViewed
 };

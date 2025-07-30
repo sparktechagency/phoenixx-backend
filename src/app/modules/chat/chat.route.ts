@@ -13,6 +13,11 @@ router.patch(
       auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
       ChatController.markChatAsRead
 );
+router.patch(
+      '/mark-chat-as-read-icon',
+      auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
+      ChatController.markMessagesAsIconViewed
+);
 router.delete(
       '/delete/:chatId',
       auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),

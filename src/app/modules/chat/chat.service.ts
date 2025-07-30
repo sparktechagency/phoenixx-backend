@@ -41,6 +41,168 @@ const markChatAsRead = async (userId: string, chatId: string) => {
 };
 
 // 5. Updated getAllChatsFromDB with better unread count calculation
+// const getAllChatsFromDB = async (
+//   userId: string,
+//   query: Record<string, any>,
+// ) => {
+//   const searchTerm = query.searchTerm?.toLowerCase();
+//   const page = parseInt(query.page) || 1;
+//   const limit = parseInt(query.limit) || 10;
+//   const skip = (page - 1) * limit;
+
+//   const chatQuery = {
+//     participants: { $in: [userId] },
+//     deletedBy: { $ne: userId },
+//   };
+
+//   let chats;
+//   let totalChats;
+
+//   if (searchTerm) {
+//     const allChats = await Chat.find(chatQuery)
+//       .populate('lastMessage')
+//       .lean()
+//       .sort({ updatedAt: -1 });
+
+//     const allChatLists = await Promise.all(
+//       allChats.map(async (chat) => {
+//         const otherParticipantIds = chat.participants.filter(
+//           (participantId) => participantId.toString() !== userId,
+//         );
+
+//         const otherParticipants = await User.find({
+//           _id: { $in: otherParticipantIds },
+//         })
+//           .select('_id profile userName name email')
+//           .lean();
+
+//         // FIXED: Correct unread count calculation
+//         // Count messages where:
+//         // 1. Message is in this chat
+//         // 2. Message sender is NOT the current user
+//         // 3. Message is not read
+//         // 4. Message is not deleted
+//         const unreadCount = await Message.countDocuments({
+//           chatId: chat._id,
+//           sender: { $ne: userId },
+//           read: false,
+//           isDeleted: false,
+//         });
+
+//         const isMuted =
+//           chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
+//         const isBlocked =
+//           chat.blockedUsers?.some(
+//             (block: any) =>
+//               block.blocker.toString() === userId ||
+//               block.blocked.toString() === userId,
+//           ) || false;
+
+//         return {
+//           ...chat,
+//           participants: otherParticipants,
+//           isRead: unreadCount === 0, // Chat is read if no unread messages
+//           unreadCount,
+//           isMuted,
+//           isBlocked,
+//         };
+//       }),
+//     );
+
+//     const filteredChats = allChatLists.filter((chat) => {
+//       return chat.participants.some((participant) =>
+//         participant.name.toLowerCase().includes(searchTerm),
+//       );
+//     });
+
+//     totalChats = filteredChats.length;
+//     chats = filteredChats.slice(skip, skip + limit);
+//   } else {
+//     totalChats = await Chat.countDocuments(chatQuery);
+
+//     const rawChats = await Chat.find(chatQuery)
+//       .populate('lastMessage')
+//       .lean()
+//       .sort({ updatedAt: -1 })
+//       .skip(skip)
+//       .limit(limit);
+
+//     chats = await Promise.all(
+//       rawChats.map(async (chat) => {
+//         const otherParticipantIds = chat.participants.filter(
+//           (participantId) => participantId.toString() !== userId,
+//         );
+
+//         const otherParticipants = await User.find({
+//           _id: { $in: otherParticipantIds },
+//         })
+//           .select('_id profile userName name email')
+//           .lean();
+
+//         // FIXED: Same unread count calculation
+//         const unreadCount = await Message.countDocuments({
+//           chatId: chat._id,
+//           sender: { $ne: userId },
+//           read: false,
+//           isDeleted: false,
+//         });
+
+//         const isMuted =
+//           chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
+//         const isBlocked =
+//           chat.blockedUsers?.some(
+//             (block: any) =>
+//               block.blocker.toString() === userId ||
+//               block.blocked.toString() === userId,
+//           ) || false;
+
+//         return {
+//           ...chat,
+//           participants: otherParticipants,
+//           isRead: unreadCount === 0,
+//           unreadCount,
+//           isMuted,
+//           isBlocked,
+//         };
+//       }),
+//     );
+//   }
+
+//   const unreadChatsCount = chats.filter((chat) => chat.unreadCount > 0).length;
+//   const totalUnreadMessages = chats.reduce(
+//     (total, chat) => total + chat.unreadCount,
+//     0,
+//   );
+
+
+//   const totalPage = Math.ceil(totalChats / limit);
+
+//   return {
+//     data: chats,
+//     unreadChatsCount,
+//     totalUnreadMessages,
+//     meta: {
+//       limit,
+//       page,
+//       total: totalChats,
+//       totalPage,
+//     },
+//   };
+// };
+const markMessagesAsIconViewed = async (userId: string) => {
+  await Message.updateMany(
+    {
+      sender: { $ne: userId },
+      read: false,
+      isDeleted: false,
+      iconViewed: { $ne: userId }
+    },
+    {
+      $push: { iconViewed: userId }
+    }
+  );
+};
+
 const getAllChatsFromDB = async (
   userId: string,
   query: Record<string, any>,
@@ -76,17 +238,21 @@ const getAllChatsFromDB = async (
           .select('_id profile userName name email')
           .lean();
 
-        // FIXED: Correct unread count calculation
-        // Count messages where:
-        // 1. Message is in this chat
-        // 2. Message sender is NOT the current user
-        // 3. Message is not read
-        // 4. Message is not deleted
+        // Regular unread count - for individual chat
         const unreadCount = await Message.countDocuments({
           chatId: chat._id,
           sender: { $ne: userId },
           read: false,
           isDeleted: false,
+        });
+
+        // Icon-level unread count - messages that haven't been seen in icon
+        const iconUnreadCount = await Message.countDocuments({
+          chatId: chat._id,
+          sender: { $ne: userId },
+          read: false,
+          isDeleted: false,
+          iconViewed: { $ne: userId }, // New field to track icon view
         });
 
         const isMuted =
@@ -101,8 +267,9 @@ const getAllChatsFromDB = async (
         return {
           ...chat,
           participants: otherParticipants,
-          isRead: unreadCount === 0, // Chat is read if no unread messages
-          unreadCount,
+          isRead: unreadCount === 0, // Chat level read status
+          unreadCount, // Individual chat unread count
+          iconUnreadCount, // Icon level unread count
           isMuted,
           isBlocked,
         };
@@ -139,12 +306,21 @@ const getAllChatsFromDB = async (
           .select('_id profile userName name email')
           .lean();
 
-        // FIXED: Same unread count calculation
+        // Regular unread count
         const unreadCount = await Message.countDocuments({
           chatId: chat._id,
           sender: { $ne: userId },
           read: false,
           isDeleted: false,
+        });
+
+        // Icon-level unread count
+        const iconUnreadCount = await Message.countDocuments({
+          chatId: chat._id,
+          sender: { $ne: userId },
+          read: false,
+          isDeleted: false,
+          iconViewed: { $ne: userId },
         });
 
         const isMuted =
@@ -161,6 +337,7 @@ const getAllChatsFromDB = async (
           participants: otherParticipants,
           isRead: unreadCount === 0,
           unreadCount,
+          iconUnreadCount,
           isMuted,
           isBlocked,
         };
@@ -168,12 +345,18 @@ const getAllChatsFromDB = async (
     );
   }
 
+  // Calculate totals for icon display
+  const totalIconUnreadMessages = chats.reduce(
+    (total, chat) => total + chat.iconUnreadCount,
+    0,
+  );
+  
+  // Regular unread counts (for individual chats)
   const unreadChatsCount = chats.filter((chat) => chat.unreadCount > 0).length;
   const totalUnreadMessages = chats.reduce(
     (total, chat) => total + chat.unreadCount,
     0,
   );
-
 
   const totalPage = Math.ceil(totalChats / limit);
 
@@ -181,6 +364,7 @@ const getAllChatsFromDB = async (
     data: chats,
     unreadChatsCount,
     totalUnreadMessages,
+    totalIconUnreadMessages, // New: For icon display
     meta: {
       limit,
       page,
@@ -360,4 +544,5 @@ export const ChatService = {
   softDeleteChatForUser,
   muteUnmuteChat,
   blockUnblockUser,
+  markMessagesAsIconViewed
 };
