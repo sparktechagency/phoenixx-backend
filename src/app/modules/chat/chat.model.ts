@@ -18,16 +18,7 @@ const chatSchema = new Schema<IChat>(
                         blockedAt: { type: Date, default: Date.now },
                   },
             ],
-            pinnedMessages: [{ type: Schema.Types.ObjectId, ref: 'Message' }],
-            iconViewed: {
-                  type: [
-                        {
-                              type: mongoose.Schema.Types.ObjectId,
-                              ref: 'User',
-                        },
-                  ],
-                  default: [],
-            },
+            pinnedMessages: [{ type: Schema.Types.ObjectId, ref: 'Message' }]
       },
       {
             timestamps: true,
