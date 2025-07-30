@@ -315,8 +315,8 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
                         isDeleted: false,
                   });
 
-                  if (pinnedCount >= 10) {
-                        throw new ApiError(StatusCodes.BAD_REQUEST, 'Maximum 10 messages can be pinned per chat');
+                  if (pinnedCount >= 1) {
+                        throw new ApiError(StatusCodes.BAD_REQUEST, 'Maximum 1 messages can be pinned per chat');
                   }
 
                   // Pin the message
