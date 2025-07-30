@@ -188,10 +188,10 @@ const markMessagesAsIconViewed = async (userId: string) => {
                   sender: { $ne: userId },
                   read: false,
                   isDeleted: false,
-                  iconViewed: { $ne: userId },
+                  iconViewed: { $nin: [userId] }, // $ne এর বদলে $nin ব্যবহার করুন
             },
             {
-                  $push: { iconViewed: userId },
+                  $addToSet: { iconViewed: userId }, // $push এর বদলে $addToSet ব্যবহার করুন
             }
       );
 };
