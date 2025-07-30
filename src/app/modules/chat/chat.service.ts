@@ -339,7 +339,7 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>) => 
             data: chats,
             unreadChatsCount,
             totalUnreadMessages,
-            totalIconUnreadMessages: totalIconUnreadMessages || 0, // New: For icon display
+            totalIconUnreadMessages, // New: For icon display
             meta: {
                   limit,
                   page,

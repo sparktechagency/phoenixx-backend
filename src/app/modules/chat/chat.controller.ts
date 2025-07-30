@@ -55,6 +55,7 @@ const getChats = catchAsync(async (req, res) => {
       // Include chat statistics in data instead of meta
       unreadChatsCount: result.unreadChatsCount,
       totalUnreadMessages: result.totalUnreadMessages,
+      totalIconUnreadMessages: result.totalIconUnreadMessages,
     },
     pagination: result.meta, // Standard pagination meta
   });
