@@ -228,7 +228,20 @@ const addReactionToMessage = async (
 
             // Save the updated message
             const updatedMessage = await message.save();
+            const populatedMessage = await Message.findById(updatedMessage._id)
+                  .populate('sender', 'userName name email profile')
+                  .populate('reactions.userId', 'userName name email profile')
+                  .lean();
+            //@ts-ignore
+            const io = global.io;
 
+            if (chat && chat.participants && io) {
+                  // Emit to each participant in the chat
+                  chat.participants.forEach((participantId: any) => {
+                        const participantIdStr = participantId.toString();
+                        io.emit(`reactionUpdate::${participantIdStr}`, populatedMessage);
+                  });
+            }
             return updatedMessage;
       } catch (error) {
             console.error('Error updating reaction:', error);
@@ -545,6 +558,45 @@ const pinUnpinMessage = async (userId: string, messageId: string, action: 'pin' 
 //             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Internal server error');
 //       }
 // };
+// const replyToMessage = async (payload: Partial<IMessage>) => {
+//       // First check if the original message exists
+//       const originalMessage = await Message.findById(payload.replyTo);
+//       if (!originalMessage) {
+//             throw new ApiError(StatusCodes.NOT_FOUND, 'Original message not found');
+//       }
+
+//       if (originalMessage.isDeleted) {
+//             throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot reply to a deleted message');
+//       }
+
+//       // Check if chat exists and user is a member
+//       const chat = await Chat.findById(payload.chatId);
+//       if (!chat) {
+//             throw new ApiError(StatusCodes.NOT_FOUND, 'Chat not found');
+//       }
+
+//       if (!chat.participants.includes(payload.sender as any)) {
+//             throw new ApiError(StatusCodes.FORBIDDEN, 'You are not a member of this chat');
+//       }
+
+//       // Set reply information
+//       payload.replyText = originalMessage.text;
+//       payload.replySender = originalMessage.sender;
+//       payload.replyType = originalMessage.type;
+
+//       const message = await Message.create(payload);
+
+//       // Update chat's last message
+//       await Chat.findByIdAndUpdate(payload.chatId, {
+//             lastMessage: message._id,
+//             lastActivity: new Date(),
+//       });
+
+//       return await Message.findById(message._id)
+//             .populate('sender', 'name profileImage')
+//             .populate('replyTo')
+//             .populate('replySender', 'name profileImage');
+// };
 const replyToMessage = async (payload: Partial<IMessage>) => {
       // First check if the original message exists
       const originalMessage = await Message.findById(payload.replyTo);
@@ -566,25 +618,98 @@ const replyToMessage = async (payload: Partial<IMessage>) => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'You are not a member of this chat');
       }
 
-      // Set reply information
-      payload.replyText = originalMessage.text;
-      payload.replySender = originalMessage.sender;
-      payload.replyType = originalMessage.type;
+      // Check if sender is blocked
+      const isBlocked = chat.blockedUsers?.some(
+            (block: any) =>
+                  (block.blocker.toString() === payload.sender?.toString() &&
+                        chat.participants.some((p) => p.toString() === block.blocked.toString())) ||
+                  (block.blocked.toString() === payload.sender?.toString() &&
+                        chat.participants.some((p) => p.toString() === block.blocker.toString()))
+      );
 
-      const message = await Message.create(payload);
+      if (isBlocked) {
+            throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot send message to blocked user');
+      }
 
-      // Update chat's last message
+      // Set reply information and message defaults
+      const messagePayload = {
+            ...payload,
+            replyText: originalMessage.text,
+            replySender: originalMessage.sender,
+            replyType: originalMessage.type,
+            read: false,
+            readAt: null,
+            isDeleted: false,
+            createdAt: new Date(),
+      };
+
+      const message = await Message.create(messagePayload);
+
+      // Update chat - remove ALL participants from readBy except sender
       await Chat.findByIdAndUpdate(payload.chatId, {
             lastMessage: message._id,
-            lastActivity: new Date(),
+            readBy: [payload.sender?.toString()], // Only sender has read it
+            updatedAt: new Date(),
       });
 
-      return await Message.findById(message._id)
-            .populate('sender', 'name profileImage')
+      // Get populated message for socket
+      const populatedMessage = await Message.findById(message._id)
+            .populate('sender', 'userName name email profile')
             .populate('replyTo')
-            .populate('replySender', 'name profileImage');
-};
+            .populate('replySender', 'userName name email profile')
+            .lean();
 
+      // Get updated chat with populated data for chat list update
+      const populatedChat = await Chat.findById(payload.chatId)
+            .populate('participants', 'userName name email profile')
+            .populate('lastMessage')
+            .lean();
+
+      // Socket emissions
+      //@ts-ignore
+      const io = global.io;
+
+      if (chat.participants && io) {
+            const otherParticipants = chat.participants.filter(
+                  (participant) => participant && participant.toString() !== payload.sender?.toString()
+            );
+
+            // Emit to each participant
+            otherParticipants.forEach((participantId) => {
+                  const participantIdStr = participantId.toString();
+
+                  // Emit new message
+                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
+
+                  // Emit unread count update
+                  io.emit(`unreadCountUpdate::${participantIdStr}`, {
+                        chatId: payload.chatId,
+                        action: 'increment',
+                  });
+
+                  // Emit chat list update to move this chat to top
+                  io.emit(`chatListUpdate::${participantIdStr}`, {
+                        chatId: payload.chatId,
+                        chat: populatedChat,
+                        action: 'moveToTop',
+                        lastMessage: populatedMessage,
+                        updatedAt: new Date(),
+                  });
+            });
+
+            // Also emit chat list update to sender
+            const senderIdStr = payload.sender?.toString();
+            io.emit(`chatListUpdate::${senderIdStr}`, {
+                  chatId: payload.chatId,
+                  chat: populatedChat,
+                  action: 'moveToTop',
+                  lastMessage: populatedMessage,
+                  updatedAt: new Date(),
+            });
+      }
+
+      return populatedMessage;
+};
 export const MessageService = {
       sendMessageToDB,
       getMessagesFromDB,
