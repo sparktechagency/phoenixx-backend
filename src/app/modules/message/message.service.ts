@@ -239,7 +239,7 @@ const addReactionToMessage = async (
                   // Emit to each participant in the chat
                   chat.participants.forEach((participantId: any) => {
                         const participantIdStr = participantId.toString();
-                        io.emit(`reactionUpdate::${participantIdStr}`, populatedMessage);
+                        io.emit(`newMessage::${participantIdStr}`, populatedMessage);
                   });
             }
             return updatedMessage;
