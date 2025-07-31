@@ -696,9 +696,9 @@ const replyToMessage = async (payload: Partial<IMessage>) => {
                         updatedAt: new Date(),
                   });
             });
-
             // Also emit chat list update to sender
             const senderIdStr = payload.sender?.toString();
+            io.emit(`newMessage::${senderIdStr}`, populatedMessage);
             io.emit(`chatListUpdate::${senderIdStr}`, {
                   chatId: payload.chatId,
                   chat: populatedChat,
