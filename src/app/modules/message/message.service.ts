@@ -655,7 +655,6 @@ const replyToMessage = async (payload: Partial<IMessage>) => {
       // Get populated message for socket
       const populatedMessage = await Message.findById(message._id)
             .populate('sender', 'userName name email profile')
-            .populate('replyTo')
             .populate('replySender', 'userName name email profile')
             .lean();
 
