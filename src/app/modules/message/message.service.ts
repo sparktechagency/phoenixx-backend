@@ -241,7 +241,7 @@ const sendMessageToDB = async (chatId: string, senderId: string, messageData: an
 
                   // Also emit chat reactivation event for those who had deleted
                   //@ts-ignore
-                  io.emit(`chatReactivated::${participant._id}`, {
+                  io.emit(`newChat::${participant._id}`, {
                         chatId,
                         lastMessage: newMessage,
                         lastMessageAt: new Date(),
