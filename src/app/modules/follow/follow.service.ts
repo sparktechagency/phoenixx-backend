@@ -32,7 +32,7 @@ const subscribe = async (subscriberId: string, subscribedToId: string) => {
             recipient: new Types.ObjectId(subscribedToId),
             type: 'new_follower',
             title: 'New Follower',
-            message: `${subscriber.name} started following you`,
+            message: `${subscriber.userName} started following you`,
             read: false,
       });
 
