@@ -250,11 +250,16 @@ const isMessagePinnedByUser = (message: any, userId: string): boolean => {
 //       return response;
 // };
 const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
+      const startTime = Date.now();
+      console.log('🚀 Starting sendMessageToDB at:', new Date().toISOString());
+
       // Check if chat exists
       const chat = await Chat.findById(payload.chatId);
       if (!chat) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Chat not found');
       }
+
+      console.log('✅ Chat found in:', Date.now() - startTime, 'ms');
 
       // Verify sender is participant
       const isSenderParticipant = chat.participants.some((p) => p.toString() === payload.sender.toString());
@@ -276,24 +281,20 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot send message to blocked user');
       }
 
-      // IMPORTANT: Handle chat reactivation if sender had deleted it
+      // Handle chat reactivation
       let chatUpdated = false;
-      let originalDeletedByDetails = [...chat.deletedByDetails]; // Keep original for comparison
-
-      // Remove sender from deletedByDetails if they were there
       const originalDeletedCount = chat.deletedByDetails.length;
       chat.deletedByDetails = chat.deletedByDetails.filter(
             (detail) => detail.userId.toString() !== payload.sender.toString()
       );
 
-      // If sender was in deleted list, reactivate chat
       if (originalDeletedCount > chat.deletedByDetails.length) {
             chat.status = 'active';
             chat.isDeleted = false;
             chatUpdated = true;
+            console.log('🔄 Chat reactivated for sender:', payload.sender);
       }
 
-      // Create message with proper defaults
       const messagePayload = {
             ...payload,
             read: false,
@@ -302,28 +303,32 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
             createdAt: new Date(),
       };
 
-      // Create message and update chat in parallel for better performance
-      const [response] = await Promise.all([
-            Message.create(messagePayload),
-            Chat.findByIdAndUpdate(
-                  payload.chatId,
-                  {
-                        lastMessage: null, // Will update this after message creation
-                        lastMessageAt: new Date(),
-                        readBy: [payload.sender.toString()],
-                        status: 'active',
-                        isDeleted: false,
-                        updatedAt: new Date(),
-                        deletedByDetails: chat.deletedByDetails,
-                  },
-                  { new: true }
-            ),
-      ]);
+      console.log('💾 Creating message at:', Date.now() - startTime, 'ms');
 
-      // Now update chat with the actual message ID
-      const updatedChat = await Chat.findByIdAndUpdate(response.chatId, { lastMessage: response._id }, { new: true });
+      // Create message
+      const response = await Message.create(messagePayload);
 
-      // Get all populated data in parallel
+      console.log('✅ Message created in:', Date.now() - startTime, 'ms');
+
+      // Update chat
+      await Chat.findByIdAndUpdate(
+            response.chatId,
+            {
+                  lastMessage: response._id,
+                  lastMessageAt: new Date(),
+                  readBy: [payload.sender.toString()],
+                  status: 'active',
+                  isDeleted: false,
+                  updatedAt: new Date(),
+                  deletedByDetails: chat.deletedByDetails,
+            },
+            { new: true }
+      );
+
+      console.log('✅ Chat updated in:', Date.now() - startTime, 'ms');
+
+      // Get populated data
+      const populationStart = Date.now();
       const [populatedMessage, populatedChat] = await Promise.all([
             Message.findById(response._id).populate('sender', 'userName name email profile').lean(),
             Chat.findById(response.chatId)
@@ -332,79 +337,63 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
                   .lean(),
       ]);
 
-      // Socket emissions - FIX: Remove duplicates and improve timing
+      console.log('✅ Data populated in:', Date.now() - populationStart, 'ms');
+      console.log('📤 Starting socket emissions at:', Date.now() - startTime, 'ms');
+
+      // Socket emissions
       //@ts-ignore
       const io = global.io;
 
       if (chat.participants && io && populatedMessage) {
-            // Prepare socket data once
-            const socketData = {
-                  message: populatedMessage,
-                  chatId: payload.chatId,
-                  chat: populatedChat,
-                  lastMessage: populatedMessage,
-                  updatedAt: new Date(),
-                  ...(chatUpdated
-                        ? {
-                                reactivated: true,
-                                reactivatedBy: payload.sender.toString(),
-                          }
-                        : {}),
-            };
+            const emissionStart = Date.now();
 
-            // Emit to ALL participants immediately
-            chat.participants.forEach((participantId) => {
+            chat.participants.forEach((participantId, index) => {
                   const participantIdStr = participantId.toString();
 
-                  try {
-                        // 1. Emit new message FIRST (most important)
-                        io.emit(`newMessage::${participantIdStr}`, populatedMessage);
+                  console.log(
+                        `📨 Emitting to participant ${index + 1}/${chat.participants.length}: ${participantIdStr}`
+                  );
 
-                        // 2. If chat was reactivated, emit reactivation event
-                        if (chatUpdated) {
-                              io.emit(`newChat::${participantIdStr}`, {
-                                    chatId: payload.chatId,
-                                    chat: populatedChat,
-                                    lastMessage: populatedMessage,
-                                    reactivatedBy: payload.sender.toString(),
-                              });
-                        }
+                  // Emit new message immediately
+                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
+                  console.log(`✅ newMessage emitted to ${participantIdStr}`);
 
-                        // 3. Emit unread count update (except for sender)
-                        if (participantIdStr !== payload.sender.toString()) {
-                              io.emit(`unreadCountUpdate::${participantIdStr}`, {
-                                    chatId: payload.chatId,
-                                    action: 'increment',
-                              });
-                        }
-
-                        // 4. Emit chat list update to move this chat to top
-                        io.emit(`chatListUpdate::${participantIdStr}`, {
+                  // If chat reactivated
+                  if (chatUpdated) {
+                        io.emit(`chatReactivated::${participantIdStr}`, {
                               chatId: payload.chatId,
                               chat: populatedChat,
-                              action: 'moveToTop',
                               lastMessage: populatedMessage,
-                              updatedAt: new Date(),
-                              ...(chatUpdated ? { reactivated: true } : {}),
+                              reactivatedBy: payload.sender.toString(),
                         });
-                  } catch (socketError) {
-                        console.error(`Socket emission error for participant ${participantIdStr}:`, socketError);
+                        console.log(`✅ chatReactivated emitted to ${participantIdStr}`);
                   }
+
+                  // Unread count (except sender)
+                  if (participantIdStr !== payload.sender.toString()) {
+                        io.emit(`unreadCountUpdate::${participantIdStr}`, {
+                              chatId: payload.chatId,
+                              action: 'increment',
+                        });
+                        console.log(`✅ unreadCountUpdate emitted to ${participantIdStr}`);
+                  }
+
+                  // Chat list update
+                  io.emit(`chatListUpdate::${participantIdStr}`, {
+                        chatId: payload.chatId,
+                        chat: populatedChat,
+                        action: 'moveToTop',
+                        lastMessage: populatedMessage,
+                        updatedAt: new Date(),
+                        ...(chatUpdated ? { reactivated: true } : {}),
+                  });
+                  console.log(`✅ chatListUpdate emitted to ${participantIdStr}`);
             });
 
-            // Also emit to sender for their own chat list update
-            try {
-                  const senderIdStr = payload.sender.toString();
-                  io.emit(`messageSent::${senderIdStr}`, {
-                        message: populatedMessage,
-                        chatId: payload.chatId,
-                        success: true,
-                  });
-            } catch (socketError) {
-                  console.error('Socket emission error for sender:', socketError);
-            }
+            console.log('✅ All socket emissions completed in:', Date.now() - emissionStart, 'ms');
       }
 
+      console.log('🎉 Total sendMessageToDB completed in:', Date.now() - startTime, 'ms');
       return response;
 };
 
