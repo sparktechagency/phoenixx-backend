@@ -1,4 +1,6 @@
+import { StatusCodes } from 'http-status-codes';
 import QueryBuilder from '../../../builder/QueryBuilder';
+import ApiError from '../../../errors/ApiError';
 import { IFeedback } from './feedback.interface';
 import { Feedback } from './feedback.model';
 
@@ -24,7 +26,17 @@ const getAllFeedbacksFromDB = async (query: Record<string, any>) => {
             meta: total,
       };
 };
+
+const deleteFeedbackFromDB = async (feedbackId: string) => {
+      const result = await Feedback.findByIdAndDelete(feedbackId);
+      if (!result) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Feedback not found');
+      }
+      return result;
+};
+
 export const FeedbackService = {
       createFeedbackIntoDB,
       getAllFeedbacksFromDB,
+      deleteFeedbackFromDB
 };

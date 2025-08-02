@@ -27,7 +27,20 @@ const getAllFeedbacks = catchAsync(async (req, res) => {
       });
 });
 
+const deleteFeedback = catchAsync(async (req, res) => {
+      const { feedbackId } = req.params;
+      const result = await FeedbackService.deleteFeedbackFromDB(feedbackId);
+      sendResponse(res, {
+            statusCode: StatusCodes.OK,
+            success: true,
+            message: 'Feedback deleted successfully',
+            data: result,
+      });
+});
+
+
 export const FeedbackController = {
       createFeedback,
       getAllFeedbacks,
+      deleteFeedback
 };
