@@ -176,166 +176,167 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
       return response;
 };
 
-// const getMessagesFromDB = async (
-//       chatId: string,
-//       userId: string // Add userId parameter
-// ): Promise<{
-//       messages: IMessage[];
-//       pinnedMessages: IMessage[];
-// }> => {
-//       const response = await Message.find({ chatId })
-//             .populate({
-//                   path: 'sender',
-//                   select: 'userName name email profile',
-//             })
-//             .populate({ path: 'reactions.userId', select: 'userName name' })
-//             .populate({ path: 'pinnedBy', select: 'userName name' })
-//             .sort({ createdAt: -1 });
-
-//       // Mark messages as read for the current user (only messages not sent by current user)
-//       const messageIds = response
-//             .filter((msg) => msg.sender._id.toString() !== userId && !msg.read)
-//             .map((msg) => msg._id);
-
-//       if (messageIds.length > 0) {
-//             await Message.updateMany(
-//                   {
-//                         _id: { $in: messageIds },
-//                         sender: { $ne: userId }, // Only update messages not sent by current user
-//                   },
-//                   {
-//                         $set: { read: true, readAt: new Date() },
-//                   }
-//             );
-//       }
-
-//       // Get pinned messages separately
-//       const pinnedMessages = await Message.find({
-//             chatId,
-//             isPinned: true,
-//             isDeleted: false,
-//       })
-//             .populate({
-//                   path: 'sender',
-//                   select: 'userName name email profile',
-//             })
-//             .populate({ path: 'pinnedBy', select: 'userName name' })
-//             .sort({ pinnedAt: -1 });
-
-//       const formattedMessages = response.map((message) => ({
-//             ...message.toObject(),
-//             isDeleted: message.isDeleted,
-//             text: message.isDeleted ? 'This message has been deleted.' : message.text,
-//       }));
-
-//       const formattedPinnedMessages = pinnedMessages.map((message) => ({
-//             ...message.toObject(),
-//             text: message.isDeleted ? 'This message has been deleted.' : message.text,
-//       }));
-
-//       return {
-//             messages: formattedMessages,
-//             pinnedMessages: formattedPinnedMessages,
-//       };
-// };
 const getMessagesFromDB = async (
       chatId: string,
-      userId: string
+      userId: string // Add userId parameter
 ): Promise<{
       messages: IMessage[];
-      pinnedMessages: IMessage[]; // User-specific pinned messages only
+      pinnedMessages: IMessage[];
 }> => {
-      try {
-            // Validate inputs
-            if (!chatId) {
-                  throw new Error('Chat ID is required');
-            }
-            if (!userId) {
-                  throw new Error('User ID is required');
-            }
+      const response = await Message.find({ chatId })
+            .populate({
+                  path: 'sender',
+                  select: 'userName name email profile',
+            })
+            .populate({ path: 'reactions.userId', select: 'userName name' })
+            .populate({ path: 'pinnedBy', select: 'userName name' })
+            .sort({ createdAt: -1 });
 
-            // Check if chat exists
-            const chatExists = await Chat.exists({ _id: chatId });
-            if (!chatExists) {
-                  throw new Error('Chat not found');
-            }
+      // Mark messages as read for the current user (only messages not sent by current user)
+      const messageIds = response
+            .filter((msg) => msg.sender._id.toString() !== userId && !msg.read)
+            .map((msg) => msg._id);
 
-            // Parallel execution for better performance
-            const [response, userPinnedMessages] = await Promise.all([
-                  // Get all messages
-                  Message.find({ chatId })
-                        .populate({
-                              path: 'sender',
-                              select: 'userName name email profile',
-                        })
-                        .populate({ path: 'reactions.userId', select: 'userName name' })
-                        .populate({ path: 'pinnedBy', select: 'userName name' })
-                        .sort({ createdAt: -1 })
-                        .lean(),
-
-                  // Get user-specific pinned messages
-                  getUserPinnedMessages(userId, chatId)
-            ]);
-
-            // Mark messages as read for the current user (only unread messages not sent by current user)
-            const unreadMessageIds = response
-                  .filter((msg) => {
-                        const senderId = msg.sender._id || msg.sender; // Handle both populated and non-populated cases
-                        return senderId.toString() !== userId && !msg.read;
-                  })
-                  .map((msg) => msg._id);
-
-            // Bulk update unread messages (only if there are any)
-            if (unreadMessageIds.length > 0) {
-                  await Message.updateMany(
-                        {
-                              _id: { $in: unreadMessageIds },
-                              // Double check to ensure we don't update sender's own messages
-                              sender: { $ne: userId },
-                        },
-                        {
-                              $set: { 
-                                    read: true, 
-                                    readAt: new Date() 
-                              },
-                        }
-                  );
-            }
-
-            // Format messages helper function with user-specific pin status
-            const formatMessage = (message: any) => {
-                  if (!message) {
-                        return null; // Handle null/undefined messages
+      if (messageIds.length > 0) {
+            await Message.updateMany(
+                  {
+                        _id: { $in: messageIds },
+                        sender: { $ne: userId }, // Only update messages not sent by current user
+                  },
+                  {
+                        $set: { read: true, readAt: new Date() },
                   }
-                  
-                  return {
-                        ...message,
-                        text: message.isDeleted ? 'This message has been deleted.' : message.text,
-                        isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
-                  };
-            };
-
-            // Filter out any null values that might come from formatMessage
-            const formattedMessages = response.map(formatMessage).filter(Boolean);
-            const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
-            
-            return {
-                  messages: formattedMessages,
-                  pinnedMessages: formattedPinnedMessages, // Only user-specific pinned messages
-            };
-
-      } catch (error) {
-            console.error('Error fetching messages:', error);
-            // Provide more specific error messages based on error type
-            if (error instanceof Error) {
-                  // If it's already an Error instance with a message, rethrow it
-                  throw error;
-            } else {
-                  // For unknown errors, use a generic message
-                  throw new Error('Failed to fetch messages');
-            }
+            );
       }
+
+      // Get pinned messages separately
+      const pinnedMessages = await Message.find({
+            chatId,
+            isPinned: true,
+            isDeleted: false,
+      })
+            .populate({
+                  path: 'sender',
+                  select: 'userName name email profile',
+            })
+            .populate({ path: 'pinnedBy', select: 'userName name' })
+            .sort({ pinnedAt: -1 });
+
+      const formattedMessages = response.map((message) => ({
+            ...message.toObject(),
+            isDeleted: message.isDeleted,
+            text: message.isDeleted ? 'This message has been deleted.' : message.text,
+      }));
+
+      const formattedPinnedMessages = pinnedMessages.map((message) => ({
+            ...message.toObject(),
+            text: message.isDeleted ? 'This message has been deleted.' : message.text,
+            isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
+      }));
+
+      return {
+            messages: formattedMessages,
+            pinnedMessages: formattedPinnedMessages,
+      };
 };
+// const getMessagesFromDB = async (
+//       chatId: string,
+//       userId: string
+// ): Promise<{
+//       messages: IMessage[];
+//       pinnedMessages: IMessage[]; // User-specific pinned messages only
+// }> => {
+//       try {
+//             // Validate inputs
+//             if (!chatId) {
+//                   throw new Error('Chat ID is required');
+//             }
+//             if (!userId) {
+//                   throw new Error('User ID is required');
+//             }
+
+//             // Check if chat exists
+//             const chatExists = await Chat.exists({ _id: chatId });
+//             if (!chatExists) {
+//                   throw new Error('Chat not found');
+//             }
+
+//             // Parallel execution for better performance
+//             const [response, userPinnedMessages] = await Promise.all([
+//                   // Get all messages
+//                   Message.find({ chatId })
+//                         .populate({
+//                               path: 'sender',
+//                               select: 'userName name email profile',
+//                         })
+//                         .populate({ path: 'reactions.userId', select: 'userName name' })
+//                         .populate({ path: 'pinnedBy', select: 'userName name' })
+//                         .sort({ createdAt: -1 })
+//                         .lean(),
+
+//                   // Get user-specific pinned messages
+//                   getUserPinnedMessages(userId, chatId)
+//             ]);
+
+//             // Mark messages as read for the current user (only unread messages not sent by current user)
+//             const unreadMessageIds = response
+//                   .filter((msg) => {
+//                         const senderId = msg.sender._id || msg.sender; // Handle both populated and non-populated cases
+//                         return senderId.toString() !== userId && !msg.read;
+//                   })
+//                   .map((msg) => msg._id);
+
+//             // Bulk update unread messages (only if there are any)
+//             if (unreadMessageIds.length > 0) {
+//                   await Message.updateMany(
+//                         {
+//                               _id: { $in: unreadMessageIds },
+//                               // Double check to ensure we don't update sender's own messages
+//                               sender: { $ne: userId },
+//                         },
+//                         {
+//                               $set: { 
+//                                     read: true, 
+//                                     readAt: new Date() 
+//                               },
+//                         }
+//                   );
+//             }
+
+//             // Format messages helper function with user-specific pin status
+//             const formatMessage = (message: any) => {
+//                   if (!message) {
+//                         return null; // Handle null/undefined messages
+//                   }
+                  
+//                   return {
+//                         ...message,
+//                         text: message.isDeleted ? 'This message has been deleted.' : message.text,
+//                         isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
+//                   };
+//             };
+
+//             // Filter out any null values that might come from formatMessage
+//             const formattedMessages = response.map(formatMessage).filter(Boolean);
+//             const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
+            
+//             return {
+//                   messages: formattedMessages,
+//                   pinnedMessages: formattedPinnedMessages, // Only user-specific pinned messages
+//             };
+
+//       } catch (error) {
+//             console.error('Error fetching messages:', error);
+//             // Provide more specific error messages based on error type
+//             if (error instanceof Error) {
+//                   // If it's already an Error instance with a message, rethrow it
+//                   throw error;
+//             } else {
+//                   // For unknown errors, use a generic message
+//                   throw new Error('Failed to fetch messages');
+//             }
+//       }
+// };
 
 const addReactionToMessage = async (
       id: string,
