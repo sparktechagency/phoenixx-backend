@@ -34,29 +34,29 @@ const messageSchema = new Schema<IMessage, MessageModel>(
                   default: false,
                   required: true,
             },
-            // New pinned message fields
-            // isPinned: {
-            //       type: Boolean,
-            //       default: false,
-            // },
-            // pinnedBy: {
-            //       type: Schema.Types.ObjectId,
-            //       ref: 'User',
-            // },
-            // pinnedAt: {
-            //       type: Date,
-            // },
-             pinnedByUsers: [{
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    pinnedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+            // Pinned message fields
+            isPinned: {
+                  type: Boolean,
+                  default: false,
+            },
+            pinnedBy: {
+                  type: Schema.Types.ObjectId,
+                  ref: 'User',
+            },
+            pinnedAt: {
+                  type: Date,
+            },
+            pinnedByUsers: [{
+                  userId: {
+                        type: Schema.Types.ObjectId,
+                        ref: 'User',
+                        required: true
+                  },
+                  pinnedAt: {
+                        type: Date,
+                        default: Date.now
+                  }
+            }],
             // Reply functionality fields
             replyTo: {
                   type: Schema.Types.ObjectId,

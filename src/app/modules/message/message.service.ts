@@ -7,31 +7,66 @@ import { Message } from './message.model';
 import { Types } from 'mongoose';
 // Helper function to get user's pinned messages for a chat
 const getUserPinnedMessages = async (userId: string, chatId: string) => {
-      const chat = await Chat.findById(chatId).lean();
-      if (!chat) return [];
+      try {
+            // Validate inputs
+            if (!userId || !chatId) {
+                  console.warn('getUserPinnedMessages called with invalid parameters', { userId, chatId });
+                  return [];
+            }
 
-      const userPinnedData = chat.userPinnedMessages?.find((userPin: any) => userPin.userId.toString() === userId);
+            const chat = await Chat.findById(chatId).lean();
+            if (!chat) {
+                  console.log(`Chat not found with ID: ${chatId}`);
+                  return [];
+            }
 
-      if (!userPinnedData || !userPinnedData.pinnedMessages?.length) return [];
+            // Check if userPinnedMessages exists and is an array
+            if (!chat.userPinnedMessages || !Array.isArray(chat.userPinnedMessages)) {
+                  console.log(`No userPinnedMessages found for chat: ${chatId}`);
+                  return [];
+            }
 
-      // Get the actual messages
-      const pinnedMessages = await Message.find({
-            _id: { $in: userPinnedData.pinnedMessages },
-            isDeleted: false,
-      })
-            .populate({
-                  path: 'sender',
-                  select: 'userName name email profile',
+            const userPinnedData = chat.userPinnedMessages.find((userPin: any) => {
+                  // Safely check if userPin and userPin.userId exist
+                  if (!userPin || !userPin.userId) return false;
+                  return userPin.userId.toString() === userId;
+            });
+
+            if (!userPinnedData || !userPinnedData.pinnedMessages || !Array.isArray(userPinnedData.pinnedMessages) || !userPinnedData.pinnedMessages.length) {
+                  console.log(`No pinned messages found for user: ${userId} in chat: ${chatId}`);
+                  return [];
+            }
+
+            // Get the actual messages
+            const pinnedMessages = await Message.find({
+                  _id: { $in: userPinnedData.pinnedMessages },
+                  isDeleted: false,
             })
-            .sort({ createdAt: -1 })
-            .lean();
+                  .populate({
+                        path: 'sender',
+                        select: 'userName name email profile',
+                  })
+                  .sort({ createdAt: -1 })
+                  .lean();
 
-      return pinnedMessages;
+            return pinnedMessages;
+      } catch (error) {
+            console.error('Error in getUserPinnedMessages:', error);
+            return []; // Return empty array on error to prevent breaking the main function
+      }
 };
 
 // Helper function to check if a message is pinned by specific user
 const isMessagePinnedByUser = (message: any, userId: string): boolean => {
-      return message.pinnedByUsers?.some((pin: any) => pin.userId.toString() === userId) || false;
+      // Check if pinnedByUsers exists and is an array before using .some()
+      if (!message.pinnedByUsers || !Array.isArray(message.pinnedByUsers)) {
+            return false;
+      }
+      return message.pinnedByUsers.some((pin: any) => {
+            // Check if pin and pin.userId exist before using toString()
+            if (!pin || !pin.userId) return false;
+            return pin.userId.toString() === userId;
+      }) || false;
 };
 // Enhanced version with better error handling and logging
 const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
@@ -211,6 +246,20 @@ const getMessagesFromDB = async (
       pinnedMessages: IMessage[]; // User-specific pinned messages only
 }> => {
       try {
+            // Validate inputs
+            if (!chatId) {
+                  throw new Error('Chat ID is required');
+            }
+            if (!userId) {
+                  throw new Error('User ID is required');
+            }
+
+            // Check if chat exists
+            const chatExists = await Chat.exists({ _id: chatId });
+            if (!chatExists) {
+                  throw new Error('Chat not found');
+            }
+
             // Parallel execution for better performance
             const [response, userPinnedMessages] = await Promise.all([
                   // Get all messages
@@ -254,20 +303,37 @@ const getMessagesFromDB = async (
             }
 
             // Format messages helper function with user-specific pin status
-            const formatMessage = (message: any) => ({
-                  ...message,
-                  text: message.isDeleted ? 'This message has been deleted.' : message.text,
-                  isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
-            });
+            const formatMessage = (message: any) => {
+                  if (!message) {
+                        return null; // Handle null/undefined messages
+                  }
+                  
+                  return {
+                        ...message,
+                        text: message.isDeleted ? 'This message has been deleted.' : message.text,
+                        isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
+                  };
+            };
 
+            // Filter out any null values that might come from formatMessage
+            const formattedMessages = response.map(formatMessage).filter(Boolean);
+            const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
+            
             return {
-                  messages: response.map(formatMessage),
-                  pinnedMessages: userPinnedMessages.map(formatMessage), // Only user-specific pinned messages
+                  messages: formattedMessages,
+                  pinnedMessages: formattedPinnedMessages, // Only user-specific pinned messages
             };
 
       } catch (error) {
             console.error('Error fetching messages:', error);
-            throw new Error('Failed to fetch messages');
+            // Provide more specific error messages based on error type
+            if (error instanceof Error) {
+                  // If it's already an Error instance with a message, rethrow it
+                  throw error;
+            } else {
+                  // For unknown errors, use a generic message
+                  throw new Error('Failed to fetch messages');
+            }
       }
 };
 
