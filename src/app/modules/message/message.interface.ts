@@ -20,6 +20,10 @@ export type IMessage = {
       isPinned: boolean;
       pinnedBy?: Types.ObjectId;
       pinnedAt?: Date;
+      pinnedByUsers: {
+            userId: Types.ObjectId;
+            pinnedAt: Date;
+      }[];
       iconViewed: Types.ObjectId[];
       // Reply functionality fields
       replyTo?: Types.ObjectId | IMessage;

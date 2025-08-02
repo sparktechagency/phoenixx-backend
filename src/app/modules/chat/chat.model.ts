@@ -18,7 +18,21 @@ const chatSchema = new Schema<IChat>(
                         blockedAt: { type: Date, default: Date.now },
                   },
             ],
-            pinnedMessages: [{ type: Schema.Types.ObjectId, ref: 'Message' }]
+            userPinnedMessages: [
+                  {
+                        userId: {
+                              type: Schema.Types.ObjectId,
+                              ref: 'User',
+                              required: true,
+                        },
+                        pinnedMessages: [
+                              {
+                                    type: Schema.Types.ObjectId,
+                                    ref: 'Message',
+                              },
+                        ],
+                  },
+            ],
       },
       {
             timestamps: true,

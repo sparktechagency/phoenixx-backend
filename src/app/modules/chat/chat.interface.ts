@@ -16,5 +16,8 @@ export type IChat = {
             blocked: Types.ObjectId;
             blockedAt: Date;
       }[];
-      pinnedMessages: Types.ObjectId[]; // Pinned message IDs
+      userPinnedMessages: {
+            userId: Types.ObjectId;
+            pinnedMessages: Types.ObjectId[];
+      }[];
 };

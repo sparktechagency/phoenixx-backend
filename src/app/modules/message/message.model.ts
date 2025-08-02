@@ -46,6 +46,17 @@ const messageSchema = new Schema<IMessage, MessageModel>(
             pinnedAt: {
                   type: Date,
             },
+             pinnedByUsers: [{
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    pinnedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
             // Reply functionality fields
             replyTo: {
                   type: Schema.Types.ObjectId,
