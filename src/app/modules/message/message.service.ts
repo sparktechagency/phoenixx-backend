@@ -7,18 +7,24 @@ import { Message } from './message.model';
 import { Types } from 'mongoose';
 // Helper function to get user's pinned messages for a chat
 const getUserPinnedMessages = async (userId: string, chatId: string) => {
-      const chat = await Chat.findById(chatId);
+      const chat = await Chat.findById(chatId).lean();
       if (!chat) return [];
 
       const userPinnedData = chat.userPinnedMessages?.find((userPin: any) => userPin.userId.toString() === userId);
 
-      if (!userPinnedData) return [];
+      if (!userPinnedData || !userPinnedData.pinnedMessages?.length) return [];
 
       // Get the actual messages
       const pinnedMessages = await Message.find({
             _id: { $in: userPinnedData.pinnedMessages },
             isDeleted: false,
-      }).populate('sender', 'name avatar');
+      })
+            .populate({
+                  path: 'sender',
+                  select: 'userName name email profile',
+            })
+            .sort({ createdAt: -1 })
+            .lean();
 
       return pinnedMessages;
 };
@@ -202,11 +208,11 @@ const getMessagesFromDB = async (
       userId: string
 ): Promise<{
       messages: IMessage[];
-      pinnedMessages: IMessage[];
+      pinnedMessages: IMessage[]; // User-specific pinned messages only
 }> => {
       try {
             // Parallel execution for better performance
-            const [response, pinnedMessages] = await Promise.all([
+            const [response, userPinnedMessages] = await Promise.all([
                   // Get all messages
                   Message.find({ chatId })
                         .populate({
@@ -216,21 +222,10 @@ const getMessagesFromDB = async (
                         .populate({ path: 'reactions.userId', select: 'userName name' })
                         .populate({ path: 'pinnedBy', select: 'userName name' })
                         .sort({ createdAt: -1 })
-                        .lean(), // Use lean() for better performance if you don't need mongoose document methods
-
-                  // Get pinned messages
-                  Message.find({
-                        chatId,
-                        isPinned: true,
-                        isDeleted: false,
-                  })
-                        .populate({
-                              path: 'sender',
-                              select: 'userName name email profile',
-                        })
-                        .populate({ path: 'pinnedBy', select: 'userName name' })
-                        .sort({ pinnedAt: -1 })
                         .lean(),
+
+                  // Get user-specific pinned messages
+                  getUserPinnedMessages(userId, chatId),
             ]);
 
             // Mark messages as read for the current user (only unread messages not sent by current user)
@@ -258,21 +253,23 @@ const getMessagesFromDB = async (
                   );
             }
 
-            // Format messages helper function
+            // Format messages helper function with user-specific pin status
             const formatMessage = (message: any) => ({
                   ...message,
                   text: message.isDeleted ? 'This message has been deleted.' : message.text,
+                  isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
             });
 
             return {
                   messages: response.map(formatMessage),
-                  pinnedMessages: pinnedMessages.map(formatMessage),
+                  pinnedMessages: userPinnedMessages.map(formatMessage), // Only user-specific pinned messages
             };
       } catch (error) {
             console.error('Error fetching messages:', error);
             throw new Error('Failed to fetch messages');
       }
 };
+
 const addReactionToMessage = async (
       id: string,
       messageId: string,
