@@ -225,7 +225,7 @@ const getMessagesFromDB = async (
                         .lean(),
 
                   // Get user-specific pinned messages
-                  getUserPinnedMessages(userId, chatId),
+                  getUserPinnedMessages(userId, chatId)
             ]);
 
             // Mark messages as read for the current user (only unread messages not sent by current user)
@@ -245,9 +245,9 @@ const getMessagesFromDB = async (
                               sender: { $ne: userId },
                         },
                         {
-                              $set: {
-                                    read: true,
-                                    readAt: new Date(),
+                              $set: { 
+                                    read: true, 
+                                    readAt: new Date() 
                               },
                         }
                   );
@@ -264,6 +264,7 @@ const getMessagesFromDB = async (
                   messages: response.map(formatMessage),
                   pinnedMessages: userPinnedMessages.map(formatMessage), // Only user-specific pinned messages
             };
+
       } catch (error) {
             console.error('Error fetching messages:', error);
             throw new Error('Failed to fetch messages');
