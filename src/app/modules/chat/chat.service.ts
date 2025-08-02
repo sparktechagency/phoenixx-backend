@@ -352,6 +352,7 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>) => 
 const softDeleteChatForUser = async (chatId: string, id: string) => {
       const userId = new mongoose.Types.ObjectId(id);
       const chat = await Chat.findById(chatId);
+
       if (!chat) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Chat not found');
       }
@@ -360,21 +361,28 @@ const softDeleteChatForUser = async (chatId: string, id: string) => {
             throw new ApiError(StatusCodes.UNAUTHORIZED, 'User is not authorized');
       }
 
-      // If already deleted by this user, just return
-      if (chat.deletedBy.some((id) => id.toString() === userId.toString())) {
+      // Check if already deleted by this user
+      const alreadyDeleted = chat.deletedByDetails.some((detail) => detail.userId.toString() === userId.toString());
+
+      if (alreadyDeleted) {
             return chat;
       }
 
-      // Add userId to deletedBy array
-      chat.deletedBy.push(userId);
+      // Add detailed deletion info
+      chat.deletedByDetails.push({
+            userId: userId,
+            deletedAt: new Date(),
+      });
 
-      // Optional: If all participants deleted, mark status deleted (soft delete for everyone)
-      if (chat.deletedBy.length === chat.participants.length) {
+      // If all participants deleted, mark as globally deleted
+      if (chat.deletedByDetails.length === chat.participants.length) {
             chat.isDeleted = true;
+            chat.status = 'deleted';
       }
 
       await chat.save();
 
+      // Emit socket event
       //@ts-ignore
       const io = global.io;
       chat.participants.forEach((participant) => {

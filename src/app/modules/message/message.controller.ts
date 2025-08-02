@@ -20,7 +20,7 @@ const sendMessage = catchAsync(async (req, res) => {
       }
       req.body.sender = id;
       req.body.chatId = chatId;
-      const message = await MessageService.sendMessageToDB(req.body);
+      const message = await MessageService.sendMessageToDB(chatId, id, req.body);
       sendResponse(res, {
             statusCode: StatusCodes.OK,
             success: true,

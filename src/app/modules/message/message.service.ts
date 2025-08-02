@@ -32,7 +32,12 @@ const getUserPinnedMessages = async (userId: string, chatId: string) => {
                   return userPin.userId.toString() === userId;
             });
 
-            if (!userPinnedData || !userPinnedData.pinnedMessages || !Array.isArray(userPinnedData.pinnedMessages) || !userPinnedData.pinnedMessages.length) {
+            if (
+                  !userPinnedData ||
+                  !userPinnedData.pinnedMessages ||
+                  !Array.isArray(userPinnedData.pinnedMessages) ||
+                  !userPinnedData.pinnedMessages.length
+            ) {
                   console.log(`No pinned messages found for user: ${userId} in chat: ${chatId}`);
                   return [];
             }
@@ -62,118 +67,192 @@ const isMessagePinnedByUser = (message: any, userId: string): boolean => {
       if (!message.pinnedByUsers || !Array.isArray(message.pinnedByUsers)) {
             return false;
       }
-      return message.pinnedByUsers.some((pin: any) => {
-            // Check if pin and pin.userId exist before using toString()
-            if (!pin || !pin.userId) return false;
-            return pin.userId.toString() === userId;
-      }) || false;
+      return (
+            message.pinnedByUsers.some((pin: any) => {
+                  // Check if pin and pin.userId exist before using toString()
+                  if (!pin || !pin.userId) return false;
+                  return pin.userId.toString() === userId;
+            }) || false
+      );
 };
 // Enhanced version with better error handling and logging
-const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
-      // Check if chat exists
-      const chat = await Chat.findById(payload.chatId);
-      if (!chat) {
-            throw new ApiError(StatusCodes.NOT_FOUND, 'Chat not found');
-      }
+// const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
+//       // Check if chat exists
+//       const chat = await Chat.findById(payload.chatId);
+//       if (!chat) {
+//             throw new ApiError(StatusCodes.NOT_FOUND, 'Chat not found');
+//       }
 
-      // Verify sender is participant
-      const isSenderParticipant = chat.participants.some((p) => p.toString() === payload.sender.toString());
+//       // Verify sender is participant
+//       const isSenderParticipant = chat.participants.some((p) => p.toString() === payload.sender.toString());
 
-      if (!isSenderParticipant) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Sender is not a participant in this chat');
-      }
+//       if (!isSenderParticipant) {
+//             throw new ApiError(StatusCodes.FORBIDDEN, 'Sender is not a participant in this chat');
+//       }
 
-      // Check if sender is blocked
-      const isBlocked = chat.blockedUsers?.some(
-            (block: any) =>
-                  (block.blocker.toString() === payload.sender.toString() &&
-                        chat.participants.some((p) => p.toString() === block.blocked.toString())) ||
-                  (block.blocked.toString() === payload.sender.toString() &&
-                        chat.participants.some((p) => p.toString() === block.blocker.toString()))
-      );
+//       // Check if sender is blocked
+//       const isBlocked = chat.blockedUsers?.some(
+//             (block: any) =>
+//                   (block.blocker.toString() === payload.sender.toString() &&
+//                         chat.participants.some((p) => p.toString() === block.blocked.toString())) ||
+//                   (block.blocked.toString() === payload.sender.toString() &&
+//                         chat.participants.some((p) => p.toString() === block.blocker.toString()))
+//       );
 
-      if (isBlocked) {
-            throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot send message to blocked user');
-      }
+//       if (isBlocked) {
+//             throw new ApiError(StatusCodes.FORBIDDEN, 'Cannot send message to blocked user');
+//       }
 
-      // Create message with proper defaults
-      const messagePayload = {
-            ...payload,
-            read: false, // Always false for new messages
-            readAt: null,
-            isDeleted: false,
-            createdAt: new Date(),
-      };
+//       // Create message with proper defaults
+//       const messagePayload = {
+//             ...payload,
+//             read: false, // Always false for new messages
+//             readAt: null,
+//             isDeleted: false,
+//             createdAt: new Date(),
+//       };
 
-      const response = await Message.create(messagePayload);
+//       const response = await Message.create(messagePayload);
 
-      // Update chat - remove ALL participants from readBy except sender
-      // This ensures unread count is calculated correctly
-      await Chat.findByIdAndUpdate(
-            response?.chatId,
-            {
-                  lastMessage: response._id,
-                  readBy: [payload.sender.toString()], // Only sender has read it
-                  updatedAt: new Date(),
-            },
-            { new: true }
-      );
+//       // Update chat - remove ALL participants from readBy except sender
+//       // This ensures unread count is calculated correctly
+//       await Chat.findByIdAndUpdate(
+//             response?.chatId,
+//             {
+//                   lastMessage: response._id,
+//                   readBy: [payload.sender.toString()], // Only sender has read it
+//                   updatedAt: new Date(),
+//             },
+//             { new: true }
+//       );
 
-      // Get populated message for socket
-      const populatedMessage = await Message.findById(response._id)
-            .populate('sender', 'userName name email profile')
-            .lean();
+//       // Get populated message for socket
+//       const populatedMessage = await Message.findById(response._id)
+//             .populate('sender', 'userName name email profile')
+//             .lean();
 
-      // Get updated chat with populated data for chat list update
-      const populatedChat = await Chat.findById(response?.chatId)
-            .populate('participants', 'userName name email profile')
-            .populate('lastMessage')
-            .lean();
+//       // Get updated chat with populated data for chat list update
+//       const populatedChat = await Chat.findById(response?.chatId)
+//             .populate('participants', 'userName name email profile')
+//             .populate('lastMessage')
+//             .lean();
 
-      // Socket emissions
-      //@ts-ignore
-      const io = global.io;
+//       // Socket emissions
+//       //@ts-ignore
+//       const io = global.io;
 
-      if (chat.participants && io) {
-            const otherParticipants = chat.participants.filter(
-                  (participant) => participant && participant.toString() !== payload.sender.toString()
-            );
+//       if (chat.participants && io) {
+//             const otherParticipants = chat.participants.filter(
+//                   (participant) => participant && participant.toString() !== payload.sender.toString()
+//             );
 
-            // Emit to each participant
-            otherParticipants.forEach((participantId) => {
-                  const participantIdStr = participantId.toString();
+//             // Emit to each participant
+//             otherParticipants.forEach((participantId) => {
+//                   const participantIdStr = participantId.toString();
 
-                  // Emit new message
-                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
+//                   // Emit new message
+//                   io.emit(`newMessage::${participantIdStr}`, populatedMessage);
 
-                  // Emit unread count update - let frontend handle the increment
-                  io.emit(`unreadCountUpdate::${participantIdStr}`, {
-                        chatId: payload.chatId,
-                        action: 'increment', // Frontend should increment its local count
+//                   // Emit unread count update - let frontend handle the increment
+//                   io.emit(`unreadCountUpdate::${participantIdStr}`, {
+//                         chatId: payload.chatId,
+//                         action: 'increment', // Frontend should increment its local count
+//                   });
+
+//                   // Emit chat list update to move this chat to top
+//                   io.emit(`chatListUpdate::${participantIdStr}`, {
+//                         chatId: payload.chatId,
+//                         chat: populatedChat,
+//                         action: 'moveToTop',
+//                         lastMessage: populatedMessage,
+//                         updatedAt: new Date(),
+//                   });
+//             });
+
+//             // Also emit chat list update to sender (to update their own chat list)
+//             const senderIdStr = payload.sender.toString();
+//             io.emit(`chatListUpdate::${senderIdStr}`, {
+//                   chatId: payload.chatId,
+//                   chat: populatedChat,
+//                   action: 'moveToTop',
+//                   lastMessage: populatedMessage,
+//                   updatedAt: new Date(),
+//             });
+//       }
+
+//       return response;
+// };
+const sendMessageToDB = async (chatId: string, senderId: string, messageData: any) => {
+      try {
+            // Validate inputs
+            if (!chatId || !senderId) {
+                  throw new Error('Chat ID and Sender ID are required');
+            }
+
+            // Find the chat
+            const chat = await Chat.findById(chatId);
+            if (!chat) {
+                  throw new Error('Chat not found');
+            }
+
+            // Check if sender is a participant
+            if (!chat.participants.some((id) => id.toString() === senderId)) {
+                  throw new Error('Sender is not a participant of this chat');
+            }
+
+            // Create and save the message first
+            const newMessage = new Message({
+                  chatId,
+                  sender: senderId,
+                  ...messageData,
+                  createdAt: new Date(),
+                  read: false,
+            });
+
+            await newMessage.save();
+
+            // IMPORTANT: Remove sender from deletedByDetails if they were there
+            chat.deletedByDetails = chat.deletedByDetails.filter((detail) => detail.userId.toString() !== senderId);
+
+            // Update chat's last message info
+            chat.lastMessage = newMessage._id; // Reference to the message
+            chat.lastMessageAt = new Date();
+            chat.status = 'active'; // Reactivate chat
+            chat.isDeleted = false; // Make sure it's not deleted
+
+            // Save chat changes
+            await chat.save();
+
+            // Populate sender info for response
+            await newMessage.populate({
+                  path: 'sender',
+                  select: 'userName name email profile',
+            });
+
+            // Emit to all participants
+            //@ts-ignore
+            const io = global.io;
+            chat.participants.forEach((participant) => {
+                  //@ts-ignore
+                  io.emit(`newMessage::${participant._id}`, {
+                        message: newMessage,
+                        chatId,
                   });
 
-                  // Emit chat list update to move this chat to top
-                  io.emit(`chatListUpdate::${participantIdStr}`, {
-                        chatId: payload.chatId,
-                        chat: populatedChat,
-                        action: 'moveToTop',
-                        lastMessage: populatedMessage,
-                        updatedAt: new Date(),
+                  // Also emit chat reactivation event for those who had deleted
+                  //@ts-ignore
+                  io.emit(`chatReactivated::${participant._id}`, {
+                        chatId,
+                        lastMessage: newMessage,
+                        lastMessageAt: new Date(),
                   });
             });
 
-            // Also emit chat list update to sender (to update their own chat list)
-            const senderIdStr = payload.sender.toString();
-            io.emit(`chatListUpdate::${senderIdStr}`, {
-                  chatId: payload.chatId,
-                  chat: populatedChat,
-                  action: 'moveToTop',
-                  lastMessage: populatedMessage,
-                  updatedAt: new Date(),
-            });
+            return newMessage;
+      } catch (error) {
+            console.error('Error sending message:', error);
+            throw error;
       }
-
-      return response;
 };
 
 // const getMessagesFromDB = async (
@@ -296,9 +375,9 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 //                               sender: { $ne: userId },
 //                         },
 //                         {
-//                               $set: { 
-//                                     read: true, 
-//                                     readAt: new Date() 
+//                               $set: {
+//                                     read: true,
+//                                     readAt: new Date()
 //                               },
 //                         }
 //                   );
@@ -309,7 +388,7 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 //                   if (!message) {
 //                         return null; // Handle null/undefined messages
 //                   }
-                  
+
 //                   return {
 //                         ...message,
 //                         text: message.isDeleted ? 'This message has been deleted.' : message.text,
@@ -320,7 +399,7 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 //             // Filter out any null values that might come from formatMessage
 //             const formattedMessages = response.map(formatMessage).filter(Boolean);
 //             const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
-            
+
 //             return {
 //                   messages: formattedMessages,
 //                   pinnedMessages: formattedPinnedMessages, // Only user-specific pinned messages
@@ -344,7 +423,7 @@ const getMessagesFromDB = async (
       userId: string
 ): Promise<{
       messages: IMessage[];
-      pinnedMessages: IMessage[];
+      pinnedMessages: IMessage[]; // User-specific pinned messages only
 }> => {
       try {
             // Validate inputs
@@ -355,21 +434,24 @@ const getMessagesFromDB = async (
                   throw new Error('User ID is required');
             }
 
-            // Check if chat exists
+            // Check if chat exists and user has access
             const chat = await Chat.findById(chatId);
             if (!chat) {
                   throw new Error('Chat not found');
             }
 
-            // Check if chat is deleted by this user or globally deleted
-            const isDeletedByUser = chat.deletedBy.some((id) => id.toString() === userId);
-            
-            if (chat.isDeleted || isDeletedByUser) {
-                  // Return empty arrays instead of throwing error
-                  return {
-                        messages: [],
-                        pinnedMessages: []
-                  };
+            // Check if chat is globally deleted
+            if (chat.isDeleted) {
+                  throw new Error('Chat has been deleted');
+            }
+
+            // Find when user deleted the chat (if they did)
+            const userDeletionDetail = chat.deletedByDetails.find((detail) => detail.userId.toString() === userId);
+
+            // If user deleted the chat, only show messages after deletion time
+            let messageQuery: any = { chatId };
+            if (userDeletionDetail) {
+                  messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
             }
 
             // Check if user is a participant
@@ -377,9 +459,10 @@ const getMessagesFromDB = async (
                   throw new Error('User is not authorized to access this chat');
             }
 
-            // Rest of the code remains the same...
+            // Parallel execution for better performance
             const [response, userPinnedMessages] = await Promise.all([
-                  Message.find({ chatId })
+                  // Get messages based on query (filtered by deletion time if needed)
+                  Message.find(messageQuery)
                         .populate({
                               path: 'sender',
                               select: 'userName name email profile',
@@ -388,60 +471,70 @@ const getMessagesFromDB = async (
                         .populate({ path: 'pinnedBy', select: 'userName name' })
                         .sort({ createdAt: -1 })
                         .lean(),
-                  getUserPinnedMessages(userId, chatId)
+
+                  // Get user-specific pinned messages
+                  getUserPinnedMessages(userId, chatId),
             ]);
 
+            // Mark messages as read for the current user (only unread messages not sent by current user)
             const unreadMessageIds = response
                   .filter((msg) => {
-                        const senderId = msg.sender._id || msg.sender;
+                        const senderId = msg.sender._id || msg.sender; // Handle both populated and non-populated cases
                         return senderId.toString() !== userId && !msg.read;
                   })
                   .map((msg) => msg._id);
 
+            // Bulk update unread messages (only if there are any)
             if (unreadMessageIds.length > 0) {
                   await Message.updateMany(
                         {
                               _id: { $in: unreadMessageIds },
+                              // Double check to ensure we don't update sender's own messages
                               sender: { $ne: userId },
                         },
                         {
-                              $set: { 
-                                    read: true, 
-                                    readAt: new Date() 
+                              $set: {
+                                    read: true,
+                                    readAt: new Date(),
                               },
                         }
                   );
             }
 
+            // Format messages helper function with user-specific pin status
             const formatMessage = (message: any) => {
                   if (!message) {
-                        return null;
+                        return null; // Handle null/undefined messages
                   }
-                  
+
                   return {
                         ...message,
                         text: message.isDeleted ? 'This message has been deleted.' : message.text,
-                        isPinnedByCurrentUser: isMessagePinnedByUser(message, userId),
+                        isPinnedByCurrentUser: isMessagePinnedByUser(message, userId), // Add this info
                   };
             };
 
+            // Filter out any null values that might come from formatMessage
             const formattedMessages = response.map(formatMessage).filter(Boolean);
             const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
-            
+
             return {
                   messages: formattedMessages,
-                  pinnedMessages: formattedPinnedMessages,
+                  pinnedMessages: formattedPinnedMessages, // Only user-specific pinned messages
             };
-
       } catch (error) {
             console.error('Error fetching messages:', error);
+            // Provide more specific error messages based on error type
             if (error instanceof Error) {
+                  // If it's already an Error instance with a message, rethrow it
                   throw error;
             } else {
+                  // For unknown errors, use a generic message
                   throw new Error('Failed to fetch messages');
             }
       }
 };
+
 const addReactionToMessage = async (
       id: string,
       messageId: string,
@@ -594,6 +687,7 @@ const deleteMessage = async (userId: string, messageId: string) => {
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to delete message');
       }
 };
+
 // const deleteMessage = async (userId: string, messageId: string) => {
 //       try {
 //             // Find the message by messageId
