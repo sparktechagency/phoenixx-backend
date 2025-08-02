@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 export type INotification = {
       recipient: Types.ObjectId;
       sender?: Types.ObjectId;
+      followerId?: Types.ObjectId;
       type:
             | 'info'
             | 'warning'
