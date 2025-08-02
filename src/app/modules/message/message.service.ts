@@ -278,6 +278,7 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 
       // IMPORTANT: Handle chat reactivation if sender had deleted it
       let chatUpdated = false;
+      let originalDeletedByDetails = [...chat.deletedByDetails]; // Keep original for comparison
 
       // Remove sender from deletedByDetails if they were there
       const originalDeletedCount = chat.deletedByDetails.length;
@@ -295,86 +296,113 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
       // Create message with proper defaults
       const messagePayload = {
             ...payload,
-            read: false, // Always false for new messages
+            read: false,
             readAt: null,
             isDeleted: false,
             createdAt: new Date(),
       };
 
-      const response = await Message.create(messagePayload);
+      // Create message and update chat in parallel for better performance
+      const [response] = await Promise.all([
+            Message.create(messagePayload),
+            Chat.findByIdAndUpdate(
+                  payload.chatId,
+                  {
+                        lastMessage: null, // Will update this after message creation
+                        lastMessageAt: new Date(),
+                        readBy: [payload.sender.toString()],
+                        status: 'active',
+                        isDeleted: false,
+                        updatedAt: new Date(),
+                        deletedByDetails: chat.deletedByDetails,
+                  },
+                  { new: true }
+            ),
+      ]);
 
-      // Update chat - remove ALL participants from readBy except sender
-      // This ensures unread count is calculated correctly
-      await Chat.findByIdAndUpdate(
-            response?.chatId,
-            {
-                  lastMessage: response._id,
-                  lastMessageAt: new Date(), // Add this for better tracking
-                  readBy: [payload.sender.toString()], // Only sender has read it
-                  status: 'active', // Ensure chat is active
-                  isDeleted: false, // Ensure chat is not deleted
-                  updatedAt: new Date(),
-                  // Update deletedByDetails if needed
-                  ...(chatUpdated
-                        ? {
-                                deletedByDetails: chat.deletedByDetails,
-                          }
-                        : {}),
-            },
-            { new: true }
-      );
+      // Now update chat with the actual message ID
+      const updatedChat = await Chat.findByIdAndUpdate(response.chatId, { lastMessage: response._id }, { new: true });
 
-      // Get populated message for socket
-      const populatedMessage = await Message.findById(response._id)
-            .populate('sender', 'userName name email profile')
-            .lean();
+      // Get all populated data in parallel
+      const [populatedMessage, populatedChat] = await Promise.all([
+            Message.findById(response._id).populate('sender', 'userName name email profile').lean(),
+            Chat.findById(response.chatId)
+                  .populate('participants', 'userName name email profile')
+                  .populate('lastMessage')
+                  .lean(),
+      ]);
 
-      // Get updated chat with populated data for chat list update
-      const populatedChat = await Chat.findById(response?.chatId)
-            .populate('participants', 'userName name email profile')
-            .populate('lastMessage')
-            .lean();
-
-      // Socket emissions
+      // Socket emissions - FIX: Remove duplicates and improve timing
       //@ts-ignore
       const io = global.io;
 
-      if (chat.participants && io) {
-            // Emit to ALL participants (including those who had deleted the chat)
+      if (chat.participants && io && populatedMessage) {
+            // Prepare socket data once
+            const socketData = {
+                  message: populatedMessage,
+                  chatId: payload.chatId,
+                  chat: populatedChat,
+                  lastMessage: populatedMessage,
+                  updatedAt: new Date(),
+                  ...(chatUpdated
+                        ? {
+                                reactivated: true,
+                                reactivatedBy: payload.sender.toString(),
+                          }
+                        : {}),
+            };
+
+            // Emit to ALL participants immediately
             chat.participants.forEach((participantId) => {
                   const participantIdStr = participantId.toString();
 
-                  // Emit new message to everyone
-                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
+                  try {
+                        // 1. Emit new message FIRST (most important)
+                        io.emit(`newMessage::${participantIdStr}`, populatedMessage);
 
-                  // If chat was reactivated, emit reactivation event
-                  if (chatUpdated) {
-                        io.emit(`newMessage::${participantIdStr}`, {
+                        // 2. If chat was reactivated, emit reactivation event
+                        if (chatUpdated) {
+                              io.emit(`newChat::${participantIdStr}`, {
+                                    chatId: payload.chatId,
+                                    chat: populatedChat,
+                                    lastMessage: populatedMessage,
+                                    reactivatedBy: payload.sender.toString(),
+                              });
+                        }
+
+                        // 3. Emit unread count update (except for sender)
+                        if (participantIdStr !== payload.sender.toString()) {
+                              io.emit(`unreadCountUpdate::${participantIdStr}`, {
+                                    chatId: payload.chatId,
+                                    action: 'increment',
+                              });
+                        }
+
+                        // 4. Emit chat list update to move this chat to top
+                        io.emit(`chatListUpdate::${participantIdStr}`, {
                               chatId: payload.chatId,
                               chat: populatedChat,
+                              action: 'moveToTop',
                               lastMessage: populatedMessage,
-                              reactivatedBy: payload.sender.toString(),
+                              updatedAt: new Date(),
+                              ...(chatUpdated ? { reactivated: true } : {}),
                         });
+                  } catch (socketError) {
+                        console.error(`Socket emission error for participant ${participantIdStr}:`, socketError);
                   }
-
-                  // Emit unread count update (except for sender)
-                  if (participantIdStr !== payload.sender.toString()) {
-                        io.emit(`unreadCountUpdate::${participantIdStr}`, {
-                              chatId: payload.chatId,
-                              action: 'increment',
-                        });
-                  }
-                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
-                  // Emit chat list update to move this chat to top
-                  io.emit(`chatListUpdate::${participantIdStr}`, {
-                        chatId: payload.chatId,
-                        chat: populatedChat,
-                        action: 'moveToTop',
-                        lastMessage: populatedMessage,
-                        updatedAt: new Date(),
-                        ...(chatUpdated ? { reactivated: true } : {}),
-                  });
             });
+
+            // Also emit to sender for their own chat list update
+            try {
+                  const senderIdStr = payload.sender.toString();
+                  io.emit(`messageSent::${senderIdStr}`, {
+                        message: populatedMessage,
+                        chatId: payload.chatId,
+                        success: true,
+                  });
+            } catch (socketError) {
+                  console.error('Socket emission error for sender:', socketError);
+            }
       }
 
       return response;
