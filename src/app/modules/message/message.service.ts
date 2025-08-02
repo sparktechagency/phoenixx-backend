@@ -364,7 +364,7 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
                               action: 'increment',
                         });
                   }
-
+                  io.emit(`newMessage::${participantIdStr}`, populatedMessage);
                   // Emit chat list update to move this chat to top
                   io.emit(`chatListUpdate::${participantIdStr}`, {
                         chatId: payload.chatId,
