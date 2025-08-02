@@ -211,13 +211,8 @@ const getMessagesFromDB = async (
       pinnedMessages: IMessage[]; // User-specific pinned messages only
 }> => {
       try {
-            // Input validation
-            if (!chatId || !userId) {
-                  throw new ApiError(StatusCodes.BAD_REQUEST, 'Chat ID and User ID are required');
-            }
-
-            // Parallel execution for better performance with individual error handling
-            const [response, userPinnedMessages] = await Promise.allSettled([
+            // Parallel execution for better performance
+            const [response, userPinnedMessages] = await Promise.all([
                   // Get all messages
                   Message.find({ chatId })
                         .populate({
@@ -233,25 +228,11 @@ const getMessagesFromDB = async (
                   getUserPinnedMessages(userId, chatId),
             ]);
 
-            // Handle results
-            const messages = response.status === 'fulfilled' ? response.value : [];
-            const pinnedMessages = userPinnedMessages.status === 'fulfilled' ? userPinnedMessages.value : [];
-
-            if (response.status === 'rejected') {
-                  console.error('Error fetching messages:', response.reason);
-                  throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch messages from database');
-            }
-
             // Mark messages as read for the current user (only unread messages not sent by current user)
-            const unreadMessageIds = messages
+            const unreadMessageIds = response
                   .filter((msg) => {
-                        try {
-                              const senderId = msg.sender?._id || msg.sender;
-                              return senderId && senderId.toString() !== userId && !msg.read;
-                        } catch (err) {
-                              console.error('Error filtering message:', err);
-                              return false;
-                        }
+                        const senderId = msg.sender._id || msg.sender; // Handle both populated and non-populated cases
+                        return senderId.toString() !== userId && !msg.read;
                   })
                   .map((msg) => msg._id);
 
@@ -280,33 +261,12 @@ const getMessagesFromDB = async (
             });
 
             return {
-                  messages: response.status === 'fulfilled' ? response.value.map(formatMessage) : [],
-                  pinnedMessages: userPinnedMessages.status === 'fulfilled' ? userPinnedMessages.value.map(formatMessage) : [], // Only user-specific pinned messages
+                  messages: response.map(formatMessage),
+                  pinnedMessages: userPinnedMessages.map(formatMessage), // Only user-specific pinned messages
             };
-      } catch (error: any) {
-            console.error('Error fetching messages - Details:', {
-                  error: error.message,
-                  stack: error.stack,
-                  chatId,
-                  userId,
-                  name: error.name,
-            });
-
-            // Re-throw specific errors
-            if (error instanceof ApiError) {
-                  throw error;
-            }
-
-            // Handle mongoose errors
-            if (error.name === 'CastError') {
-                  throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid chat ID format');
-            }
-
-            if (error.name === 'ValidationError') {
-                  throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid request data');
-            }
-
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, `Failed to fetch messages: ${error.message}`);
+      } catch (error) {
+            console.error('Error fetching messages:', error);
+            throw new Error('Failed to fetch messages');
       }
 };
 
