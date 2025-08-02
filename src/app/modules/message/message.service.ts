@@ -349,7 +349,7 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 
                   // If chat was reactivated, emit reactivation event
                   if (chatUpdated) {
-                        io.emit(`chatReactivated::${participantIdStr}`, {
+                        io.emit(`newMessage::${participantIdStr}`, {
                               chatId: payload.chatId,
                               chat: populatedChat,
                               lastMessage: populatedMessage,
