@@ -35,17 +35,17 @@ const messageSchema = new Schema<IMessage, MessageModel>(
                   required: true,
             },
             // New pinned message fields
-            isPinned: {
-                  type: Boolean,
-                  default: false,
-            },
-            pinnedBy: {
-                  type: Schema.Types.ObjectId,
-                  ref: 'User',
-            },
-            pinnedAt: {
-                  type: Date,
-            },
+            // isPinned: {
+            //       type: Boolean,
+            //       default: false,
+            // },
+            // pinnedBy: {
+            //       type: Schema.Types.ObjectId,
+            //       ref: 'User',
+            // },
+            // pinnedAt: {
+            //       type: Date,
+            // },
              pinnedByUsers: [{
     userId: {
       type: Schema.Types.ObjectId,
