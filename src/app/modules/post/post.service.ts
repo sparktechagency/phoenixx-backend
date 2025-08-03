@@ -50,7 +50,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
             const io = (global as any).io;
             const notifications = [];
 
-            // 1. Create author notification (শুধু একবার)
+            // 1. Create author notification
             const authorNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
                   postId: result._id.toString(),
