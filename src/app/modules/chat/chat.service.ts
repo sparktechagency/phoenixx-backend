@@ -1016,6 +1016,8 @@ const softDeleteChatForUser = async (chatId: string, id: string) => {
       chat.participants.forEach((participant) => {
             //@ts-ignore
             io.emit(`chatDeletedForUser::${participant._id}`, { chatId, userId });
+            io.emit(`chatListUpdate::${participant._id}`, { chatId, userId });
+            // io.emit(`newChat::${participant._id}`, { chatId, userId });
       });
 
       return chat;
