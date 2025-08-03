@@ -94,10 +94,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                                     console.log(`📤 Notification sent to: ${follow.subscriber}`);
                               }
                         } catch (error) {
-                              console.error(
-                                    `❌ Error creating notification for follower ${follow.subscriber}:`,
-                                    error
-                              );
+                              console.error(`❌ Error creating notification for follower ${follow.subscriber}:`, error);
                         }
                   }
             } else {
@@ -229,7 +226,7 @@ const likePostIntoDB = async (id: string, userId: string) => {
       if (!findUser) {
             throw new Error('User not found');
       }
-      if (existingPost.author) {
+      if (existingPost.author && existingPost.author.toString() !== userId) {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(existingPost.author.toString()),
                   postId: existingPost._id.toString(),
