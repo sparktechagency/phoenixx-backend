@@ -231,26 +231,23 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
       const limit = parseInt(query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      // FIXED: Updated chat query to use deletedByDetails instead of deletedBy
-      const chatQuery = {
+      // Base chat query - get all chats user participates in that aren't globally deleted
+      const baseChatQuery = {
             participants: { $in: [userId] },
-            // Exclude globally deleted chats
-            isDeleted: { $ne: true },
-            // Exclude chats deleted by this user using deletedByDetails
-            'deletedByDetails.userId': { $ne: userId }
+            isDeleted: { $ne: true }
       };
 
       let chats: ProcessedChat[] = [];
       let totalChats: number = 0;
 
       if (searchTerm) {
-            const allChats = await Chat.find(chatQuery)
+            const allChats = await Chat.find(baseChatQuery)
                   .populate('lastMessage')
                   .lean()
                   .sort({ updatedAt: -1 });
 
-            const allChatLists: ProcessedChat[] = await Promise.all(
-                  allChats.map(async (chat): Promise<ProcessedChat> => {
+            const allChatLists: (ProcessedChat | null)[] = await Promise.all(
+                  allChats.map(async (chat): Promise<ProcessedChat | null> => {
                         const otherParticipantIds = chat.participants.filter(
                               (participantId) => participantId.toString() !== userId
                         );
@@ -282,6 +279,11 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                         // Regular unread count - for individual chat
                         const unreadCount = await Message.countDocuments(messageQuery);
 
+                        // IMPORTANT FIX: Skip chats that were deleted by user AND have no new messages
+                        if (userDeletionDetail && unreadCount === 0) {
+                              return null; // This chat should not appear in the list
+                        }
+
                         const isMuted = chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
                         const isBlocked =
                               chat.blockedUsers?.some(
@@ -289,18 +291,18 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                                           block.blocker.toString() === userId || block.blocked.toString() === userId
                               ) || false;
 
-                        // FIXED: Icon-level unread count - only count if chat is not muted
+                        // Icon-level unread count - only count if chat is not muted
                         const iconUnreadCount = isMuted ? 0 : await Message.countDocuments({
                               ...messageQuery,
-                              iconViewed: { $ne: userId }, // New field to track icon view
+                              iconViewed: { $ne: userId },
                         });
 
                         return {
                               ...chat,
                               participants: otherParticipants,
-                              isRead: unreadCount === 0, // Chat level read status
-                              unreadCount, // Individual chat unread count
-                              iconUnreadCount, // Icon level unread count (0 if muted)
+                              isRead: unreadCount === 0,
+                              unreadCount,
+                              iconUnreadCount,
                               isMuted,
                               isBlocked,
                               // Add deletion info for debugging
@@ -310,7 +312,10 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                   })
             );
 
-            const filteredChats = allChatLists.filter((chat) => {
+            // Filter out null values (deleted chats with no new messages)
+            const validChats = allChatLists.filter((chat): chat is ProcessedChat => chat !== null);
+
+            const filteredChats = validChats.filter((chat) => {
                   return chat.participants.some((participant) => 
                         participant.name.toLowerCase().includes(searchTerm)
                   );
@@ -319,17 +324,14 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
             totalChats = filteredChats.length;
             chats = filteredChats.slice(skip, skip + limit);
       } else {
-            totalChats = await Chat.countDocuments(chatQuery);
-
-            const rawChats = await Chat.find(chatQuery)
+            // For non-search queries, we need to filter after processing to get correct counts
+            const allChats = await Chat.find(baseChatQuery)
                   .populate('lastMessage')
                   .lean()
-                  .sort({ updatedAt: -1 })
-                  .skip(skip)
-                  .limit(limit);
+                  .sort({ updatedAt: -1 });
 
-            chats = await Promise.all(
-                  rawChats.map(async (chat): Promise<ProcessedChat> => {
+            const processedChats = await Promise.all(
+                  allChats.map(async (chat): Promise<ProcessedChat | null> => {
                         const otherParticipantIds = chat.participants.filter(
                               (participantId) => participantId.toString() !== userId
                         );
@@ -361,6 +363,11 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                         // Regular unread count
                         const unreadCount = await Message.countDocuments(messageQuery);
 
+                        // IMPORTANT FIX: Skip chats that were deleted by user AND have no new messages
+                        if (userDeletionDetail && unreadCount === 0) {
+                              return null; // This chat should not appear in the list
+                        }
+
                         const isMuted = chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
                         const isBlocked =
                               chat.blockedUsers?.some(
@@ -368,7 +375,7 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                                           block.blocker.toString() === userId || block.blocked.toString() === userId
                               ) || false;
 
-                        // FIXED: Icon-level unread count - only count if chat is not muted
+                        // Icon-level unread count - only count if chat is not muted
                         const iconUnreadCount = isMuted ? 0 : await Message.countDocuments({
                               ...messageQuery,
                               iconViewed: { $ne: userId },
@@ -379,7 +386,7 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                               participants: otherParticipants,
                               isRead: unreadCount === 0,
                               unreadCount,
-                              iconUnreadCount, // Will be 0 if chat is muted
+                              iconUnreadCount,
                               isMuted,
                               isBlocked,
                               // Add deletion info for debugging
@@ -388,6 +395,11 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
                         };
                   })
             );
+
+            // Filter out null values and apply pagination
+            const validChats = processedChats.filter((chat): chat is ProcessedChat => chat !== null);
+            totalChats = validChats.length;
+            chats = validChats.slice(skip, skip + limit);
       }
 
       // Calculate totals for icon display - this now automatically excludes muted chats
@@ -403,7 +415,7 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
             data: chats,
             unreadChatsCount,
             totalUnreadMessages,
-            totalIconUnreadMessages, // Now correctly excludes muted chats
+            totalIconUnreadMessages,
             meta: {
                   limit,
                   page,
@@ -412,6 +424,206 @@ const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Pr
             },
       };
 };
+
+
+// const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Promise<{
+//       data: ProcessedChat[];
+//       unreadChatsCount: number;
+//       totalUnreadMessages: number;
+//       totalIconUnreadMessages: number;
+//       meta: {
+//             limit: number;
+//             page: number;
+//             total: number;
+//             totalPage: number;
+//       };
+// }> => {
+//       const searchTerm = query.searchTerm?.toLowerCase();
+//       const page = parseInt(query.page) || 1;
+//       const limit = parseInt(query.limit) || 10;
+//       const skip = (page - 1) * limit;
+
+//       // FIXED: Updated chat query to use deletedByDetails instead of deletedBy
+//       const chatQuery = {
+//             participants: { $in: [userId] },
+//             // Exclude globally deleted chats
+//             isDeleted: { $ne: true },
+//             // Exclude chats deleted by this user using deletedByDetails
+//             'deletedByDetails.userId': { $ne: userId }
+//       };
+
+//       let chats: ProcessedChat[] = [];
+//       let totalChats: number = 0;
+
+//       if (searchTerm) {
+//             const allChats = await Chat.find(chatQuery)
+//                   .populate('lastMessage')
+//                   .lean()
+//                   .sort({ updatedAt: -1 });
+
+//             const allChatLists: ProcessedChat[] = await Promise.all(
+//                   allChats.map(async (chat): Promise<ProcessedChat> => {
+//                         const otherParticipantIds = chat.participants.filter(
+//                               (participantId) => participantId.toString() !== userId
+//                         );
+
+//                         const otherParticipants = await User.find({
+//                               _id: { $in: otherParticipantIds },
+//                         })
+//                               .select('_id profile userName name email')
+//                               .lean();
+
+//                         // Check if user deleted this chat and get deletion time
+//                         const userDeletionDetail = chat.deletedByDetails?.find(
+//                               (detail) => detail.userId.toString() === userId
+//                         );
+
+//                         // Build message query based on deletion status
+//                         let messageQuery: any = {
+//                               chatId: chat._id,
+//                               sender: { $ne: userId },
+//                               read: false,
+//                               isDeleted: false,
+//                         };
+
+//                         // If user had deleted the chat, only count messages after deletion
+//                         if (userDeletionDetail) {
+//                               messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
+//                         }
+
+//                         // Regular unread count - for individual chat
+//                         const unreadCount = await Message.countDocuments(messageQuery);
+
+//                         const isMuted = chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
+//                         const isBlocked =
+//                               chat.blockedUsers?.some(
+//                                     (block: any) =>
+//                                           block.blocker.toString() === userId || block.blocked.toString() === userId
+//                               ) || false;
+
+//                         // FIXED: Icon-level unread count - only count if chat is not muted
+//                         const iconUnreadCount = isMuted ? 0 : await Message.countDocuments({
+//                               ...messageQuery,
+//                               iconViewed: { $ne: userId }, // New field to track icon view
+//                         });
+
+//                         return {
+//                               ...chat,
+//                               participants: otherParticipants,
+//                               isRead: unreadCount === 0, // Chat level read status
+//                               unreadCount, // Individual chat unread count
+//                               iconUnreadCount, // Icon level unread count (0 if muted)
+//                               isMuted,
+//                               isBlocked,
+//                               // Add deletion info for debugging
+//                               wasDeletedByUser: !!userDeletionDetail,
+//                               deletedAt: userDeletionDetail?.deletedAt || null,
+//                         };
+//                   })
+//             );
+
+//             const filteredChats = allChatLists.filter((chat) => {
+//                   return chat.participants.some((participant) => 
+//                         participant.name.toLowerCase().includes(searchTerm)
+//                   );
+//             });
+
+//             totalChats = filteredChats.length;
+//             chats = filteredChats.slice(skip, skip + limit);
+//       } else {
+//             totalChats = await Chat.countDocuments(chatQuery);
+
+//             const rawChats = await Chat.find(chatQuery)
+//                   .populate('lastMessage')
+//                   .lean()
+//                   .sort({ updatedAt: -1 })
+//                   .skip(skip)
+//                   .limit(limit);
+
+//             chats = await Promise.all(
+//                   rawChats.map(async (chat): Promise<ProcessedChat> => {
+//                         const otherParticipantIds = chat.participants.filter(
+//                               (participantId) => participantId.toString() !== userId
+//                         );
+
+//                         const otherParticipants = await User.find({
+//                               _id: { $in: otherParticipantIds },
+//                         })
+//                               .select('_id profile userName name email')
+//                               .lean();
+
+//                         // Check if user deleted this chat and get deletion time
+//                         const userDeletionDetail = chat.deletedByDetails?.find(
+//                               (detail) => detail.userId.toString() === userId
+//                         );
+
+//                         // Build message query based on deletion status
+//                         let messageQuery: any = {
+//                               chatId: chat._id,
+//                               sender: { $ne: userId },
+//                               read: false,
+//                               isDeleted: false,
+//                         };
+
+//                         // If user had deleted the chat, only count messages after deletion
+//                         if (userDeletionDetail) {
+//                               messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
+//                         }
+
+//                         // Regular unread count
+//                         const unreadCount = await Message.countDocuments(messageQuery);
+
+//                         const isMuted = chat.mutedBy?.some((id: any) => id.toString() === userId) || false;
+//                         const isBlocked =
+//                               chat.blockedUsers?.some(
+//                                     (block: any) =>
+//                                           block.blocker.toString() === userId || block.blocked.toString() === userId
+//                               ) || false;
+
+//                         // FIXED: Icon-level unread count - only count if chat is not muted
+//                         const iconUnreadCount = isMuted ? 0 : await Message.countDocuments({
+//                               ...messageQuery,
+//                               iconViewed: { $ne: userId },
+//                         });
+
+//                         return {
+//                               ...chat,
+//                               participants: otherParticipants,
+//                               isRead: unreadCount === 0,
+//                               unreadCount,
+//                               iconUnreadCount, // Will be 0 if chat is muted
+//                               isMuted,
+//                               isBlocked,
+//                               // Add deletion info for debugging
+//                               wasDeletedByUser: !!userDeletionDetail,
+//                               deletedAt: userDeletionDetail?.deletedAt || null,
+//                         };
+//                   })
+//             );
+//       }
+
+//       // Calculate totals for icon display - this now automatically excludes muted chats
+//       const totalIconUnreadMessages = chats.reduce((total, chat) => total + chat.iconUnreadCount, 0);
+
+//       // Regular unread counts (for individual chats)
+//       const unreadChatsCount = chats.filter((chat) => chat.unreadCount > 0).length;
+//       const totalUnreadMessages = chats.reduce((total, chat) => total + chat.unreadCount, 0);
+
+//       const totalPage = Math.ceil(totalChats / limit);
+
+//       return {
+//             data: chats,
+//             unreadChatsCount,
+//             totalUnreadMessages,
+//             totalIconUnreadMessages, // Now correctly excludes muted chats
+//             meta: {
+//                   limit,
+//                   page,
+//                   total: totalChats,
+//                   totalPage,
+//             },
+//       };
+// };
 
 // const getAllChatsFromDB = async (userId: string, query: Record<string, any>): Promise<{
 //       data: ProcessedChat[];
