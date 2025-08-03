@@ -993,7 +993,11 @@ const softDeleteChatForUser = async (chatId: string, id: string) => {
       const alreadyDeleted = chat.deletedByDetails.some((detail) => detail.userId.toString() === userId.toString());
 
       if (alreadyDeleted) {
-            return chat;
+            return {
+                  success: true,
+                  message: 'Chat already deleted for this user',
+                  chat
+            };
       }
 
       // Add detailed deletion info
@@ -1002,25 +1006,60 @@ const softDeleteChatForUser = async (chatId: string, id: string) => {
             deletedAt: new Date(),
       });
 
+      // IMPROVED: Check if ALL participants have deleted the chat
+      const allParticipantsDeleted = chat.participants.every(participantId => 
+            chat.deletedByDetails.some(detail => 
+                  detail.userId.toString() === participantId.toString()
+            )
+      );
+
       // If all participants deleted, mark as globally deleted
-      if (chat.deletedByDetails.length === chat.participants.length) {
+      if (allParticipantsDeleted) {
             chat.isDeleted = true;
             chat.status = 'deleted';
       }
 
       await chat.save();
 
-      // Emit socket event
+      // IMPROVED: Emit socket events with better event names and data
       //@ts-ignore
       const io = global.io;
-      chat.participants.forEach((participant) => {
-            //@ts-ignore
-            io.emit(`chatDeletedForUser::${participant._id}`, { chatId, userId });
-            io.emit(`chatListUpdate::${participant._id}`, { chatId, userId });
-            // io.emit(`newChat::${participant._id}`, { chatId, userId });
+      
+      // Notify the user who deleted the chat
+      io.emit(`notification::${userId}`, { 
+            chatId, 
+            deletedBy: userId,
+            deletedAt: new Date(),
+            isGloballyDeleted: allParticipantsDeleted
       });
 
-      return chat;
+      // Notify other participants about chat list update (they might see last message change)
+      chat.participants.forEach((participantId) => {
+            if (participantId.toString() !== userId.toString()) {
+                  io.emit(`chatListUpdate::${participantId}`, { 
+                        chatId, 
+                        updatedBy: userId,
+                        type: 'user_deleted_chat'
+                  });
+            }
+      });
+
+      // If globally deleted, notify all participants
+      if (allParticipantsDeleted) {
+            chat.participants.forEach((participantId) => {
+                  io.emit(`chatGloballyDeleted::${participantId}`, { 
+                        chatId,
+                        deletedAt: new Date()
+                  });
+            });
+      }
+
+      return {
+            success: true,
+            message: 'Chat deleted successfully',
+            chat,
+            isGloballyDeleted: allParticipantsDeleted
+      };
 };
 
 // New feature: Mute/Unmute chat
