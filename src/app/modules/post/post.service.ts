@@ -35,83 +35,77 @@ const populateReplies = {
       ],
 };
 const createPostIntoDB = async (payload: IPost, files: any) => {
-    const user = await User.findById(payload.author);
-    if (!user) {
-        throw new Error('You are not logged in');
-    }
+      const user = await User.findById(payload.author);
+      if (!user) {
+            throw new Error('You are not logged in');
+      }
 
-    if (files?.image?.length > 0) {
-        payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
-    }
+      if (files?.image?.length > 0) {
+            payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
+      }
 
-    const result = await Post.create(payload);
+      const result = await Post.create(payload);
 
-    if (result.author) {
-        // Author notification
-        const authorNotification = await NotificationService.createNotificationToDB({
-            recipient: new Types.ObjectId(result.author.toString()),
-            postId: result._id.toString(),
-            type: 'post',
-            title: 'New Post Created',
-            message: `Your post has created successfully`,
-            read: false,
-        });
+      if (result.author) {
+            const io = (global as any).io;
+            const notifications = [];
 
-        // Debug: Check followers
-        const followers = await Follow.find({ subscribedTo: result.author }).populate('subscriber', 'name');
-        console.log('📊 Total followers found:', followers.length);
-        console.log('👥 Followers details:', followers);
+            // 1. Create author notification (শুধু একবার)
+            const authorNotification = await NotificationService.createNotificationToDB({
+                  recipient: new Types.ObjectId(result.author.toString()),
+                  postId: result._id.toString(),
+                  type: 'post',
+                  title: 'New Post Created',
+                  message: `Your post has created successfully`,
+                  read: false,
+            });
 
-        if (followers.length > 0) {
-            // Create notifications for followers
-            const followerNotifications = [];
-            
-            for (const follow of followers) {
-                console.log('🔄 Processing follower:', follow.subscriber);
-                
-                const notification = await NotificationService.createNotificationToDB({
-                    recipient: new Types.ObjectId(follow.subscriber._id.toString()),
-                    postId: result._id.toString(),
-                    type: 'new_post_from_following',
-                    title: 'New Post from Someone You Follow',
-                    message: `${user.name} has created a new post`,
-                    read: false,
-                });
-                
-                followerNotifications.push(notification);
-                console.log('✅ Notification created for:', follow.subscriber);
+            // Emit author notification
+            if (io) {
+                  io.emit(`notification::${result.author.toString()}`, authorNotification);
+                  console.log('📤 Author notification sent');
             }
 
-            // Socket.io emissions
-            const io = global.io;
-            if (io) {
-                console.log('🔌 Socket.io available, emitting notifications...');
-                
-                // Notify author
-                io.emit(`notification::${result.author.toString()}`, authorNotification);
-                console.log('📤 Author notification sent');
+            // 2. Find followers (author কে exclude করুন)
+            const followers = await Follow.find({
+                  subscribedTo: result.author,
+                  subscriber: { $ne: result.author },
+            }).populate('subscriber', 'name');
 
-                // Notify followers
-                followers.forEach((follow, index) => {
-                    const eventName = `notification::${(follow.subscriber as any)._id.toString()}`;
-                    io.emit(eventName, followerNotifications[index] as any);
-                    console.log(`📤 Follower notification sent to: ${eventName}`);
-                });
+            console.log('👥 Followers found:', followers.length);
+
+            // 3. Create and emit follower notifications
+            if (followers.length > 0) {
+                  for (const follow of followers) {
+                        try {
+                              const followerNotification = await NotificationService.createNotificationToDB({
+                                    recipient: new Types.ObjectId((follow.subscriber as any)._id.toString()),
+                                    postId: result._id.toString(),
+                                    type: 'new_post_from_following',
+                                    title: 'New Post from Someone You Follow',
+                                    message: `${user.userName} has created a new post`,
+                                    read: false,
+                              });
+
+                              // Emit individual follower notification
+                              if (io) {
+                                    const eventName = `notification::${(follow.subscriber as any)._id.toString()}`;
+                                    io.emit(eventName, followerNotification);
+                                    console.log(`📤 Notification sent to: ${follow.subscriber}`);
+                              }
+                        } catch (error) {
+                              console.error(
+                                    `❌ Error creating notification for follower ${follow.subscriber}:`,
+                                    error
+                              );
+                        }
+                  }
             } else {
-                console.log('❌ Socket.io not available');
+                  console.log('⚠️ No followers found');
             }
-        } else {
-            console.log('⚠️ No followers found for this user');
-            
-            // Only notify author
-            const io = global.io;
-            if (io) {
-                io.emit(`notification::${result.author.toString()}`, authorNotification);
-            }
-        }
-    }
+      }
 
-    return result;
+      return result;
 };
 
 // const createPostIntoDB = async (payload: IPost, files: any) => {
