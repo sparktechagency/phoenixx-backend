@@ -182,7 +182,6 @@ const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any)
       if (!existingPost) {
             throw new Error('Post not found');
       }
-
       // Start with existing images
       let images = [...existingPost.images];
 
@@ -196,7 +195,6 @@ const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any)
                   });
             }
       }
-
       // Add new images (if any)
       if (files?.image?.length > 0) {
             const newImages = files.image.map((file: any) => `/images/${file.filename}`);
