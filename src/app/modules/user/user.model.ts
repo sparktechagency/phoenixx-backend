@@ -84,6 +84,20 @@ const userSchema = new Schema<IUser, UserModal>(
                   },
                   select: 0,
             },
+             onlineStatus: {
+                  isOnline: {
+                        type: Boolean,
+                        default: false,
+                  },
+                  lastSeen: {
+                        type: Date,
+                        default: Date.now,
+                  },
+                  lastHeartbeat: {
+                        type: Date,
+                        default: Date.now,
+                  },
+            },
       },
       { timestamps: true }
 );
@@ -103,7 +117,36 @@ userSchema.statics.isExistUserByEmail = async (email: string) => {
 userSchema.statics.isMatchPassword = async (password: string, hashPassword: string): Promise<boolean> => {
       return await bcrypt.compare(password, hashPassword);
 };
+// ✅ Online Status Methods
+userSchema.statics.setUserOnline = async (userId: string) => {
+      await User.findByIdAndUpdate(userId, {
+            'onlineStatus.isOnline': true,
+            'onlineStatus.lastSeen': new Date(),
+            'onlineStatus.lastHeartbeat': new Date(),
+      });
+};
 
+userSchema.statics.setUserOffline = async (userId: string) => {
+      await User.findByIdAndUpdate(userId, {
+            'onlineStatus.isOnline': false,
+            'onlineStatus.lastSeen': new Date(),
+      });
+};
+
+userSchema.statics.updateHeartbeat = async (userId: string) => {
+      await User.findByIdAndUpdate(userId, {
+            'onlineStatus.lastHeartbeat': new Date(),
+            'onlineStatus.lastSeen': new Date(),
+      });
+};
+
+userSchema.statics.getOnlineUsers = async () => {
+      return await User.find({ 'onlineStatus.isOnline': true }).select('name userName profile onlineStatus');
+};
+
+userSchema.statics.bulkUserStatus = async (userIds: string[]) => {
+      return await User.find({ _id: { $in: userIds } }).select('name userName profile onlineStatus');
+};
 //check user
 userSchema.pre('save', async function (next) {
       //check user

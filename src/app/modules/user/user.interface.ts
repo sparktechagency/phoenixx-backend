@@ -25,10 +25,22 @@ export type IUser = {
             oneTimeCode: number;
             expireAt: Date;
       };
+      // ✅ Online Status Interface
+      onlineStatus?: {
+            isOnline?: boolean;
+            lastSeen?: Date;
+            lastHeartbeat?: Date;
+      };
 };
 
 export type UserModal = {
       isExistUserById(id: string): any;
       isExistUserByEmail(email: string): any;
       isMatchPassword(password: string, hashPassword: string): boolean;
+      // ✅ Online Status Methods
+      setUserOnline(userId: string): Promise<void>;
+      setUserOffline(userId: string): Promise<void>;
+      updateHeartbeat(userId: string): Promise<void>;
+      getOnlineUsers(): Promise<IUser[]>;
+      bulkUserStatus(userIds: string[]): Promise<IUser[]>;
 } & Model<IUser>;
