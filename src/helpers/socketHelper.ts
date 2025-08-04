@@ -75,10 +75,24 @@ const socket = (io: Server) => {
                         socket.emit('error', { message: 'Failed to fetch users status' });
                   }
             });
-            //disconnect
+            // ✅ Step 5: Handle disconnect
+            socket.on('disconnect', async () => {
+                  if (socket.userId) {
+                        // Remove from active connections
+                        activeConnections.delete(socket.userId);
 
-            socket.on('disconnect', () => {
-                  logger.info(colors.red('A user disconnect'));
+                        // Set user offline
+                        await User.setUserOffline(socket.userId);
+
+                        // Broadcast to all users that this user is offline
+                        socket.broadcast.emit('user_offline', {
+                              userId: socket.userId,
+                              isOnline: false,
+                              lastSeen: new Date(),
+                        });
+
+                        console.log(`User ${socket.userId} disconnected and set offline`);
+                  }
             });
       });
 };
