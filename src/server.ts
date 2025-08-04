@@ -55,6 +55,7 @@ async function main() {
 }
 
 main();
+// ✅ Cleanup job - runs every 2 minutes
 
 //SIGTERM
 process.on('SIGTERM', () => {

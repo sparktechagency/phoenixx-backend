@@ -163,5 +163,6 @@ userSchema.pre('save', async function (next) {
       this.password = await bcrypt.hash(this.password, Number(config.bcrypt_salt_rounds));
       next();
 });
-
+userSchema.index({ "onlineStatus.isOnline": 1 });
+userSchema.index({ "onlineStatus.lastHeartbeat": 1 });
 export const User = model<IUser, UserModal>('User', userSchema);

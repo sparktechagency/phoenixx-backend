@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import router from './routes';
 import { Morgan } from './shared/morgen';
 import webhookHandler from './stripe/webhookHandler';
+import cron from 'node-cron';
+import { cleanupInactiveUsers } from './helpers/cleanInactiveUsers';
 const app = express();
 
 //morgan
@@ -105,5 +107,8 @@ app.use((req, res) => {
             ],
       });
 });
-
+cron.schedule('*/2 * * * *', () => {
+      console.log('Running cleanup job for inactive users...');
+      cleanupInactiveUsers();
+});
 export default app;

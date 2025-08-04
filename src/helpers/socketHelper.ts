@@ -91,7 +91,7 @@ const socket = (io: Server) => {
                               lastSeen: new Date(),
                         });
 
-                        console.log(`User ${socket.userId} disconnected and set offline`);
+                        logger.info(colors.blue(`User ${socket.userId} disconnected and set offline`));
                   }
             });
       });
