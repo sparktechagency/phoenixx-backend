@@ -676,7 +676,126 @@ const sendMessageToDB = async (payload: IMessage): Promise<IMessage> => {
 //             }
 //       }
 // };
+// aita ager message delete kora hoy
+// const getMessagesFromDB = async (
+//       chatId: string,
+//       userId: string
+// ): Promise<{
+//       messages: IMessage[];
+//       pinnedMessages: IMessage[];
+// }> => {
+//       try {
+//             // Validate inputs
+//             if (!chatId) {
+//                   throw new Error('Chat ID is required');
+//             }
+//             if (!userId) {
+//                   throw new Error('User ID is required');
+//             }
 
+//             // Check if chat exists
+//             const chat = await Chat.findById(chatId);
+//             if (!chat) {
+//                   throw new Error('Chat not found');
+//             }
+
+//             // Check if user is a participant
+//             if (!chat.participants.some((id) => id.toString() === userId)) {
+//                   throw new Error('User is not authorized to access this chat');
+//             }
+
+//             // Check if chat is globally deleted
+//             if (chat.isDeleted) {
+//                   return {
+//                         messages: [],
+//                         pinnedMessages: [],
+//                   };
+//             }
+
+//             // Find when user deleted the chat (if they did)
+//             const userDeletionDetail = chat.deletedByDetails.find((detail) => detail.userId.toString() === userId);
+
+//             // Build message query - if user deleted chat, only show messages after deletion
+//             let messageQuery: any = { chatId };
+//             if (userDeletionDetail) {
+//                   messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
+//             }
+
+//             // Parallel execution for better performance
+//             const [response, userPinnedMessages] = await Promise.all([
+//                   // Get messages based on query (filtered by deletion time if needed)
+//                   Message.find(messageQuery)
+//                         .populate({
+//                               path: 'sender',
+//                               select: 'userName name email profile',
+//                         })
+//                         .populate({ path: 'reactions.userId', select: 'userName name' })
+//                         .populate({ path: 'pinnedBy', select: 'userName name' })
+//                         .sort({ createdAt: -1 })
+//                         .lean(),
+
+//                   // Get user-specific pinned messages (also filtered by deletion time)
+//                   getUserPinnedMessages(userId, chatId, userDeletionDetail?.deletedAt),
+//             ]);
+
+//             // Mark messages as read for the current user (only unread messages not sent by current user)
+//             const unreadMessageIds = response
+//                   .filter((msg) => {
+//                         const senderId = msg.sender._id || msg.sender;
+//                         return senderId.toString() !== userId && !msg.read;
+//                   })
+//                   .map((msg) => msg._id);
+
+//             // Bulk update unread messages (only if there are any)
+//             if (unreadMessageIds.length > 0) {
+//                   await Message.updateMany(
+//                         {
+//                               _id: { $in: unreadMessageIds },
+//                               sender: { $ne: userId },
+//                         },
+//                         {
+//                               $set: {
+//                                     read: true,
+//                                     readAt: new Date(),
+//                               },
+//                         }
+//                   );
+//             }
+
+//             // Format messages helper function with user-specific pin status
+//             const formatMessage = (message: any) => {
+//                   if (!message) {
+//                         return null;
+//                   }
+
+//                   return {
+//                         ...message,
+//                         text: message.isDeleted ? 'This message has been deleted.' : message.text,
+//                         isPinnedByCurrentUser: isMessagePinnedByUser(message, userId),
+//                   };
+//             };
+
+//             // Filter out any null values that might come from formatMessage
+//             const formattedMessages = response.map(formatMessage).filter(Boolean);
+//             const formattedPinnedMessages = userPinnedMessages.map(formatMessage).filter(Boolean);
+
+//             return {
+//                   messages: formattedMessages,
+//                   pinnedMessages: formattedPinnedMessages,
+//             };
+//       } catch (error) {
+//             console.error('Error fetching messages:', error);
+//             if (error instanceof Error) {
+//                   throw error;
+//             } else {
+//                   throw new Error('Failed to fetch messages');
+//             }
+//       }
+// };
+
+// new function
+
+// Updated getMessagesFromDB function
 const getMessagesFromDB = async (
       chatId: string,
       userId: string
@@ -715,15 +834,21 @@ const getMessagesFromDB = async (
             // Find when user deleted the chat (if they did)
             const userDeletionDetail = chat.deletedByDetails.find((detail) => detail.userId.toString() === userId);
 
-            // Build message query - if user deleted chat, only show messages after deletion
-            let messageQuery: any = { chatId };
-            if (userDeletionDetail) {
-                  messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
-            }
+            // Build message query - filter out messages deleted specifically for this user
+            let messageQuery: any = {
+                  chatId,
+                  isDeleted: false, // Global deletion check
+                  'deletedForUsers.userId': { $ne: new Types.ObjectId(userId) }, // User-specific deletion check
+            };
+
+            // REMOVE this part since we're now using deletedForUsers instead:
+            // if (userDeletionDetail) {
+            //     messageQuery.createdAt = { $gt: userDeletionDetail.deletedAt };
+            // }
 
             // Parallel execution for better performance
             const [response, userPinnedMessages] = await Promise.all([
-                  // Get messages based on query (filtered by deletion time if needed)
+                  // Get messages based on query (filtered by user-specific deletion)
                   Message.find(messageQuery)
                         .populate({
                               path: 'sender',
@@ -734,7 +859,7 @@ const getMessagesFromDB = async (
                         .sort({ createdAt: -1 })
                         .lean(),
 
-                  // Get user-specific pinned messages (also filtered by deletion time)
+                  // Get user-specific pinned messages (also filtered by user-specific deletion)
                   getUserPinnedMessages(userId, chatId, userDeletionDetail?.deletedAt),
             ]);
 

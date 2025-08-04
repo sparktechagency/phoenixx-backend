@@ -46,17 +46,33 @@ const messageSchema = new Schema<IMessage, MessageModel>(
             pinnedAt: {
                   type: Date,
             },
-            pinnedByUsers: [{
-                  userId: {
-                        type: Schema.Types.ObjectId,
-                        ref: 'User',
-                        required: true
+            pinnedByUsers: [
+                  {
+                        userId: {
+                              type: Schema.Types.ObjectId,
+                              ref: 'User',
+                              required: true,
+                        },
+                        pinnedAt: {
+                              type: Date,
+                              default: Date.now,
+                        },
                   },
-                  pinnedAt: {
-                        type: Date,
-                        default: Date.now
-                  }
-            }],
+            ],
+            // NEW: Track which users have deleted this message from their view
+            deletedForUsers: [
+                  {
+                        userId: {
+                              type: Schema.Types.ObjectId,
+                              ref: 'User',
+                              required: true,
+                        },
+                        deletedAt: {
+                              type: Date,
+                              default: Date.now,
+                        },
+                  },
+            ],
             // Reply functionality fields
             replyTo: {
                   type: Schema.Types.ObjectId,

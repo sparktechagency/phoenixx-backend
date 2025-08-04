@@ -24,6 +24,10 @@ export type IMessage = {
             userId: Types.ObjectId;
             pinnedAt: Date;
       }[];
+      deletedForUsers: {
+            userId: Types.ObjectId;
+            deletedAt: Date;
+      }[];
       iconViewed: Types.ObjectId[];
       // Reply functionality fields
       replyTo?: Types.ObjectId | IMessage;
