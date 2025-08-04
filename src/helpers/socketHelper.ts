@@ -56,6 +56,17 @@ const socket = (io: Server) => {
                         socket.emit('error', { message: 'Failed to fetch online users' });
                   }
             });
+
+                // ✅ Step 3: Get online users
+    socket.on('get_online_users', async () => {
+      try {
+        const onlineUsers = await User.getOnlineUsers();
+        socket.emit('online_users_list', onlineUsers);
+      } catch (error) {
+        socket.emit('error', { message: 'Failed to fetch online users' });
+      }
+    });
+
             //disconnect
 
             socket.on('disconnect', () => {
