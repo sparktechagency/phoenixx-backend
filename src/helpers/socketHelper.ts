@@ -57,16 +57,24 @@ const socket = (io: Server) => {
                   }
             });
 
-                // ✅ Step 3: Get online users
-    socket.on('get_online_users', async () => {
-      try {
-        const onlineUsers = await User.getOnlineUsers();
-        socket.emit('online_users_list', onlineUsers);
-      } catch (error) {
-        socket.emit('error', { message: 'Failed to fetch online users' });
-      }
-    });
-
+            // ✅ Step 3: Get online users
+            socket.on('get_online_users', async () => {
+                  try {
+                        const onlineUsers = await User.getOnlineUsers();
+                        socket.emit('online_users_list', onlineUsers);
+                  } catch (error) {
+                        socket.emit('error', { message: 'Failed to fetch online users' });
+                  }
+            });
+            // ✅ Step 4: Get bulk user status
+            socket.on('get_users_status', async (userIds: string[]) => {
+                  try {
+                        const usersWithStatus = await User.bulkUserStatus(userIds);
+                        socket.emit('users_status', usersWithStatus);
+                  } catch (error) {
+                        socket.emit('error', { message: 'Failed to fetch users status' });
+                  }
+            });
             //disconnect
 
             socket.on('disconnect', () => {
