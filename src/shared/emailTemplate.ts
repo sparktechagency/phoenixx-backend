@@ -22,7 +22,7 @@ const createAccount = (values: ICreateAccount) => {
         <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 40px;">If you did not request this, please ignore this email.</p>
         
         <div style="text-align: center; margin-top: 20px;">
-          <a href="#" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+          <a href="https://mehor.com" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
             Go to Your Account
           </a>
         </div>
@@ -53,7 +53,7 @@ const resetOtp = (values: IResetPassword) => {
         <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 40px;">If you did not request this, please ignore this email.</p>
         
         <div style="text-align: center; margin-top: 20px;">
-          <a href="#" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+          <a href="https://mehor.com" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
             Go to Your Account
           </a>
         </div>
@@ -128,7 +128,7 @@ const resetPassword = (values: IResetPassword) => {
           <p style="color: #555; font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 40px;">If you did not request this, please ignore this email.</p>
           
           <div style="text-align: center; margin-top: 20px;">
-            <a href="#" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+            <a href="https://mehor.com" style="background-color: #0000FB; color: #fff; padding: 14px 22px; border-radius: 30px; font-size: 16px; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
               Reset Your Password
             </a>
           </div>
