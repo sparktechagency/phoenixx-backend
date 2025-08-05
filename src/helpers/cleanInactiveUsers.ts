@@ -19,7 +19,6 @@ export const cleanupInactiveUsers = async () => {
       //   lastSeen: new Date(),
       // });
     }
-
     console.log(`Cleaned up ${inactiveUsers.length} inactive users`);
   } catch (error) {
     console.error('Cleanup job failed:', error);
