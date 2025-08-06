@@ -4,6 +4,11 @@ export type ICreateAccount = {
       otp: number;
 };
 
+export type IResetOtp = {
+      name: string;
+      email: string;
+      otp: number;
+};
 export type IResetPassword = {
       email: string;
       otp: number;

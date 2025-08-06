@@ -146,6 +146,7 @@ const resendOtpToDB = async (email: string) => {
       const otp = generateOTP();
 
       const values = {
+            name: user.userName,
             otp,
             email,
       };

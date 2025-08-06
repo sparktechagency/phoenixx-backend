@@ -1,4 +1,4 @@
-import { ICreateAccount, IReportWarning, IResetPassword } from '../types/emailTamplate';
+import { ICreateAccount, IReportWarning, IResetOtp, IResetPassword } from '../types/emailTamplate';
 
 const createAccount = (values: ICreateAccount) => {
     const data = {
@@ -31,16 +31,14 @@ const createAccount = (values: ICreateAccount) => {
     };
     return data;
 };
-const resetOtp = (values: IResetPassword) => {
+const resetOtp = (values: IResetOtp) => {
     const data = {
         to: values.email,
         subject: 'Here is your email resend otp',
         html: `<body style="font-family: 'Arial', sans-serif; background-color: #f7f9fc; margin: 0; padding: 0; color: #333;">
       <div style="max-width: 600px; margin: 50px auto; background-color: #ffffff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <img src="https://res.cloudinary.com/ddhhyc6mr/image/upload/v1745838639/hbtbqyhmubqaeeft5k85.png" alt="Logo" style="display: block; margin: 0 auto 20px; width:150px;" />
-        
-        <h2 style="color: #0000FB; font-size: 28px; font-weight: 700; margin-bottom: 20px; text-align: center;">Hey, ${values.email}!</h2>
-        
+        <h2 style="color: #0000FB; font-size: 28px; font-weight: 700; margin-bottom: 20px; text-align: center;">Hey, ${values.name}!</h2>
         <p style="color: #555; font-size: 18px; line-height: 1.6; margin-bottom: 30px; text-align: center;">Your single-use code for verifying your Mehor account is:</p>
         
         <div style="text-align: center;">
