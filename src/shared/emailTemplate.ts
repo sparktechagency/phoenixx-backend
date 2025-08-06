@@ -119,7 +119,7 @@ const resetPassword = (values: IResetPassword) => {
           <p style="color: #555; font-size: 18px; line-height: 1.6; margin-bottom: 30px; text-align: center;">To reset your password, use the following single-use code:</p>
           
           <div style="text-align: center;">
-            <div style="background-color: #0000FB; width: 120px; padding: 20px; text-align: center; border-radius: 8px; color: #ffffff; font-size: 32px; font-weight: bold; letter-spacing: 2px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="background-color: #0000FB; width: 125px; padding: 20px; text-align: center; border-radius: 8px; color: #ffffff; font-size: 32px; font-weight: bold; letter-spacing: 2px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
               ${values.otp}
             </div>
             <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">This code is valid for the next 3 minutes.</p>
