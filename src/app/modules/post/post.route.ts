@@ -19,11 +19,11 @@ router.post('/likes/:id', auth(USER_ROLES.USER), PostController.likePost);
 router.delete('/:id', auth(USER_ROLES.USER), PostController.deletePost);
 
 router.patch('/:id', auth(USER_ROLES.USER), fileUploadHandler(), PostController.updatePost);
-router.get('/', auth(USER_ROLES.USER), PostController.getAllPosts);
+router.get('/',  PostController.getAllPosts);
 
-router.get('/:id', auth(USER_ROLES.USER), PostController.getSinglePost);
+router.get('/:id', PostController.getSinglePost);
 router.get('/all-posts/my-liked-posts', auth(USER_ROLES.USER), PostController.getMyLikedPost);
-router.get('/get-all-post-by-user-id/:id', auth(USER_ROLES.USER), PostController.getAllPostByUserId);
+router.get('/get-all-post-by-user-id/:id', PostController.getAllPostByUserId);
 
 
 router.get('/all-posts/my-posts', auth(USER_ROLES.USER), PostController.getMyPosts);
