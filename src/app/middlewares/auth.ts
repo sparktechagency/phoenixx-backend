@@ -23,13 +23,15 @@ const auth =
             token,
             config.jwt.jwt_access_token_secret as Secret
           );
-          //set user to header
-          req.user = verifyUser;
 
           if (verifyUser?.status === 'delete') {
             throw new ApiError(StatusCodes.FORBIDDEN, 'This user is banned !!');
 
           }
+          //set user to header
+          req.user = verifyUser;
+
+
           //guard user
           if (roles.length && !roles.includes(verifyUser.role)) {
             throw new ApiError(
