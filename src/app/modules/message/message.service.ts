@@ -1687,6 +1687,7 @@ const replyToMessage = async (payload: Partial<IMessage>) => {
       const populatedChat = await Chat.findById(payload.chatId)
             .populate('participants', 'userName name email profile')
             .populate('lastMessage')
+            .populate('lastMessage.sender', 'userName name email profile')
             .lean();
 
       // Socket emissions
