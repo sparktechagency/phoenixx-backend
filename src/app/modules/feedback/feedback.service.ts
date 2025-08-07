@@ -13,7 +13,7 @@ const createFeedbackIntoDB = async (payload: IFeedback) => {
 };
 
 const getAllFeedbacksFromDB = async (query: Record<string, any>) => {
-      const feedbackQuery = new QueryBuilder(Feedback.find().populate('userId', "name email userName profile"), query)
+      const feedbackQuery = new QueryBuilder(Feedback.find().populate('user', "name email userName profile"), query)
             .search(['likedAspects'])
             .filter()
             .sort()
