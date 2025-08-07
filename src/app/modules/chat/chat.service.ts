@@ -1159,7 +1159,8 @@ const getAllChatsFromDB = async (
                 isDeleted: false,
                 'deletedForUsers.userId': { $ne: new mongoose.Types.ObjectId(userId) }
             })
-            .populate('sender', 'userName name')
+            .populate('sender', 'userName name email profile')
+
             .sort({ createdAt: -1 });
 
             if (recentVisibleMessage) {
