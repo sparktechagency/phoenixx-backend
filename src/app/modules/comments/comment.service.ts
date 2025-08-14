@@ -177,21 +177,21 @@ const getMyCommentedPost = async (userId: string) => {
       const result = await Post.find({ _id: { $in: userComments } })
             .populate({
                   path: 'author',
-                  select: 'userName email profile',
+                  select: 'userName name email profile',
             })
             .populate({
                   path: 'comments',
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName email profile',
+                              select: 'userName name email profile',
                         },
                         {
                               path: 'replies',
                               populate: [
                                     {
                                           path: 'author',
-                                          select: 'userName email profile',
+                                          select: 'userName name email profile',
                                     },
                               ],
                         },
