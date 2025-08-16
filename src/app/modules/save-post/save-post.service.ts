@@ -27,7 +27,7 @@ const getAllSavedPostsByUser = async (userId: string) => {
             populate: [
                   {
                         path: 'author',
-                        select: 'userName email profile',
+                        select: 'userName name email profile',
                   },
                   {
                         path: 'category',
