@@ -1,10 +1,10 @@
-import { ObjectId } from 'mongoose';
+import { Types } from 'mongoose';
 
 export type IComment = {
-      postId: ObjectId;
-      author: ObjectId;
+      postId: Types.ObjectId;
+      author: Types.ObjectId;
       content: string;
       status: 'active' | 'deleted';
-      likes: ObjectId[];
-      replies: ObjectId[];
+      likes: Types.ObjectId[];
+      replies: Types.ObjectId[];
 };

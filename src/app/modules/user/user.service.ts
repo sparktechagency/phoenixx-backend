@@ -8,9 +8,11 @@ import generateOTP from '../../../util/generateOTP';
 import { IUser } from './user.interface';
 import { User } from './user.model';
 import QueryBuilder from '../../../builder/QueryBuilder';
-import stripe from '../../config/stripe.config';
 import { Post } from '../post/post.model';
 import { Notification } from '../notification/notification.model';
+import { Follow } from '../follow/follow.model';
+import mongoose from 'mongoose';
+import { Comment } from '../comments/comment.model';
 
 const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
       //set role
@@ -183,27 +185,47 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
 };
 
 const deleteAccountFromDB = async (id: string, password: string) => {
-      const isExistUser = await User.findById(id).select('+password');
-      //check match password
-      if (password && isExistUser && !(await User.isMatchPassword(password, isExistUser.password))) {
+    const session = await mongoose.startSession();  // Start a transaction
+    session.startTransaction();
+
+    try {
+        // Check if user exists
+        const isExistUser = await User.findById(id).select('+password').session(session);
+
+        // Check if password is correct
+        if (password && isExistUser && !(await User.isMatchPassword(password, isExistUser.password))) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect!');
-      }
+        }
 
-      const result = await User.findOneAndUpdate(
-            { _id: id },
-            {
-                  $set: {
-                        status: 'delete',
-                  },
-            },
+        // Delete related posts, comments, notifications, follows in bulk
+        await Promise.all([
+            Post.deleteMany({ author: id }).session(session),
+            Comment.deleteMany({ author: id }).session(session), // This should now work
+            Notification.deleteMany({ recipient: id }).session(session),
+            Follow.deleteMany({ follower: id }).session(session),
+            Follow.deleteMany({ followed: id }).session(session)
+        ]);
 
-            {
-                  new: true,
-            }
-      );
+        // Delete user
+        const result = await User.findOneAndDelete({ _id: id }).session(session);
 
-      return result;
+        // Commit the transaction if all operations succeed
+        await session.commitTransaction();
+        session.endSession();
+
+        return result;
+
+    } catch (error) {
+        // Abort the transaction if any error occurs
+        await session.abortTransaction();
+        session.endSession();
+        throw error;  // Propagate the error after aborting
+    }
 };
+
+
+
+
 const updateStatusIntoDB = async (id: string, status: string) => {
       const result = await User.findOneAndUpdate(
             { _id: id },
