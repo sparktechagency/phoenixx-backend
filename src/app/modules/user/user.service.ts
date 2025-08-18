@@ -35,20 +35,20 @@ const createUserToDB = async (payload: Partial<IUser>): Promise<IUser> => {
             oneTimeCode: otp,
             expireAt: new Date(Date.now() + 3 * 60000),
       };
-      let stripeCustomer;
-      try {
-            stripeCustomer = await stripe.customers.create({
-                  email: createUser.email,
-                  name: createUser.userName,
-            });
-      } catch (error) {
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create Stripe customer');
-      }
+      // let stripeCustomer;
+      // try {
+      //       stripeCustomer = await stripe.customers.create({
+      //             email: createUser.email,
+      //             name: createUser.userName,
+      //       });
+      // } catch (error) {
+      //       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create Stripe customer');
+      // }
 
-      createUser.stripeCustomerId = stripeCustomer.id;
+      // createUser.stripeCustomerId = stripeCustomer.id;
       await User.findOneAndUpdate(
             { _id: createUser._id },
-            { $set: { authentication, stripeCustomerId: stripeCustomer.id } }
+            { $set: { authentication, stripeCustomerId: "" } }
       );
 
       const updatedUser = await User.findById(createUser._id);
