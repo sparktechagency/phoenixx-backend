@@ -185,41 +185,59 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
 };
 
 const deleteAccountFromDB = async (id: string, password: string) => {
-    const session = await mongoose.startSession();  // Start a transaction
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        // Check if user exists
         const isExistUser = await User.findById(id).select('+password').session(session);
 
-        // Check if password is correct
         if (password && isExistUser && !(await User.isMatchPassword(password, isExistUser.password))) {
             throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect!');
         }
 
-        // Delete related posts, comments, notifications, follows in bulk
         await Promise.all([
             Post.deleteMany({ author: id }).session(session),
-            Comment.deleteMany({ author: id }).session(session), // This should now work
+            Comment.deleteMany({ author: id }).session(session), 
             Notification.deleteMany({ recipient: id }).session(session),
             Follow.deleteMany({ follower: id }).session(session),
             Follow.deleteMany({ followed: id }).session(session)
         ]);
 
-        // Delete user
         const result = await User.findOneAndDelete({ _id: id }).session(session);
 
-        // Commit the transaction if all operations succeed
         await session.commitTransaction();
         session.endSession();
 
         return result;
 
     } catch (error) {
-        // Abort the transaction if any error occurs
         await session.abortTransaction();
         session.endSession();
-        throw error;  // Propagate the error after aborting
+        throw error;
+    }
+};
+const deleteAccountByAdmin = async (id: string) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        await Promise.all([
+            Post.deleteMany({ author: id }).session(session),
+            Comment.deleteMany({ author: id }).session(session),
+            Notification.deleteMany({ recipient: id }).session(session),
+            Follow.deleteMany({ follower: id }).session(session),
+            Follow.deleteMany({ followed: id }).session(session)
+        ]);
+        const result = await User.findOneAndDelete({ _id: id }).session(session);
+        await session.commitTransaction();
+        session.endSession();
+
+        return result;
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw error; 
     }
 };
 
@@ -255,4 +273,5 @@ export const UserService = {
       getAllAdminFromDB,
       updateStatusIntoDB,
       deleteAdminToDB,
+      deleteAccountByAdmin
 };

@@ -37,6 +37,7 @@ router.get('/get-all-users', auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN), Use
 router.route('/all-admin').get(auth(USER_ROLES.SUPER_ADMIN), UserController.getAllAdmin);
 router.delete('/delete-admin/:id', auth(USER_ROLES.SUPER_ADMIN), UserController.deleteAdmin);
 router.route('/delete-account').patch(auth(USER_ROLES.ADMIN, USER_ROLES.USER), UserController.deleteAccount);
+router.route('/delete-account-by-admin/:id').patch(auth(USER_ROLES.ADMIN), UserController.deleteUserByAdmin);
 
 //  delete user account
 export const UserRoutes = router;
