@@ -38,6 +38,7 @@ router.route('/all-admin').get(auth(USER_ROLES.SUPER_ADMIN), UserController.getA
 router.delete('/delete-admin/:id', auth(USER_ROLES.SUPER_ADMIN), UserController.deleteAdmin);
 router.route('/delete-account').patch(auth(USER_ROLES.ADMIN, USER_ROLES.USER), UserController.deleteAccount);
 router.route('/delete-account-by-admin/:id').delete(auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), UserController.deleteUserByAdmin);
+router.route('/update-limit').patch(auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), UserController.updateUserNameLimit);
 
 //  delete user account
 export const UserRoutes = router;

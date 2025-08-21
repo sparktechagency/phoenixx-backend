@@ -153,6 +153,16 @@ const deleteUserByAdmin = catchAsync(async (req: Request, res: Response, next: N
             data: result,
       });
 });
+const updateUserNameLimit = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+      const id = req.params.id;
+      const result = await UserService.updateUserNameLimit(id);
+      sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: 'User deleted successfully',
+            data: result,
+      });
+});
 
 export const UserController = {
       createUser,
