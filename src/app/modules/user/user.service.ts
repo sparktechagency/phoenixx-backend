@@ -216,6 +216,7 @@ const deleteAccountFromDB = async (id: string, password: string) => {
             throw error;
       }
 };
+
 const deleteAccountByAdmin = async (id: string) => {
       const session = await mongoose.startSession();
 
