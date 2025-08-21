@@ -175,5 +175,6 @@ export const UserController = {
       getAllAdmin,
       updateStatus,
       deleteAdmin,
-      deleteUserByAdmin
+      deleteUserByAdmin,
+      updateUserNameLimit
 };

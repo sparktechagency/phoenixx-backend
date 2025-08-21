@@ -182,13 +182,13 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
             if (isExistUser.maxChangeUserName <= 0) {
                   throw new ApiError(StatusCodes.FORBIDDEN, 'You have reached the maximum limit for username changes!');
             }
-            
+
             // Check if the new username already exists
             const existingUser = await User.findOne({ userName: payload.userName, _id: { $ne: id } });
             if (existingUser) {
                   throw new ApiError(StatusCodes.BAD_REQUEST, 'Username already exists!');
             }
-            
+
             // Decrement maxChangeUserName
             payload.maxChangeUserName = isExistUser.maxChangeUserName - 1;
       }
@@ -274,6 +274,23 @@ const updateStatusIntoDB = async (id: string, status: string) => {
       return result;
 };
 
+const updateUserNameLimit = async (id: string) => {
+      const result = await User.findByIdAndUpdate(
+            id,
+            {
+                  $set: {
+                        maxChangeUserName: 3,
+                  },
+            },
+            {
+                  new: true,
+            }
+      );
+
+      return result;
+};
+
+
 export const UserService = {
       createUserToDB,
       getUserProfileFromDB,
@@ -286,5 +303,6 @@ export const UserService = {
       getAllAdminFromDB,
       updateStatusIntoDB,
       deleteAdminToDB,
-      deleteAccountByAdmin
+      deleteAccountByAdmin,
+      updateUserNameLimit
 };
