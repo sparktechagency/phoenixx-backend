@@ -14,11 +14,15 @@ const userSchema = new Schema<IUser, UserModal>(
             userName: {
                   type: String,
                   required: true,
-                  unique: true,
                   lowercase: true,
                   trim: true,
                   minlength: 3,
                   maxlength: 30,
+            },
+            maxChangeUserName: {
+                  type: Number,
+                  min: 0,
+                  default: 3,
             },
             role: {
                   type: String,
@@ -84,7 +88,7 @@ const userSchema = new Schema<IUser, UserModal>(
                   },
                   select: 0,
             },
-             onlineStatus: {
+            onlineStatus: {
                   isOnline: {
                         type: Boolean,
                         default: false,

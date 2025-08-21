@@ -177,6 +177,22 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
             throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
       }
 
+      // Check if user is trying to update userName
+      if (payload.userName) {
+            if (isExistUser.maxChangeUserName <= 0) {
+                  throw new ApiError(StatusCodes.FORBIDDEN, 'You have reached the maximum limit for username changes!');
+            }
+            
+            // Check if the new username already exists
+            const existingUser = await User.findOne({ userName: payload.userName, _id: { $ne: id } });
+            if (existingUser) {
+                  throw new ApiError(StatusCodes.BAD_REQUEST, 'Username already exists!');
+            }
+            
+            // Decrement maxChangeUserName
+            payload.maxChangeUserName = isExistUser.maxChangeUserName - 1;
+      }
+
       const updateDoc = await User.findOneAndUpdate({ _id: id }, payload, {
             new: true,
       });

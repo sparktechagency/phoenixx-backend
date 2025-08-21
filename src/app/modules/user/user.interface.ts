@@ -5,6 +5,8 @@ export type IUser = {
       _id: any;
       name: string;
       userName: string;
+      maxChangeUserName: number;
+
       stripeCustomerId: string | null;
       subscription: {
             subscriptionPackageId: Types.ObjectId;
