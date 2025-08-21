@@ -185,60 +185,60 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
 };
 
 const deleteAccountFromDB = async (id: string, password: string) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-    try {
-        const isExistUser = await User.findById(id).select('+password').session(session);
+      try {
+            const isExistUser = await User.findById(id).select('+password').session(session);
 
-        if (password && isExistUser && !(await User.isMatchPassword(password, isExistUser.password))) {
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect!');
-        }
+            if (password && isExistUser && !(await User.isMatchPassword(password, isExistUser.password))) {
+                  throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is incorrect!');
+            }
 
-        await Promise.all([
-            Post.deleteMany({ author: id }).session(session),
-            Comment.deleteMany({ author: id }).session(session), 
-            Notification.deleteMany({ recipient: id }).session(session),
-            Follow.deleteMany({ follower: id }).session(session),
-            Follow.deleteMany({ followed: id }).session(session)
-        ]);
+            await Promise.all([
+                  Post.deleteMany({ author: id }).session(session),
+                  Comment.deleteMany({ author: id }).session(session),
+                  Notification.deleteMany({ recipient: id }).session(session),
+                  Follow.deleteMany({ follower: id }).session(session),
+                  Follow.deleteMany({ followed: id }).session(session)
+            ]);
 
-        const result = await User.findOneAndDelete({ _id: id }).session(session);
+            const result = await User.findOneAndDelete({ _id: id }).session(session);
 
-        await session.commitTransaction();
-        session.endSession();
+            await session.commitTransaction();
+            session.endSession();
 
-        return result;
+            return result;
 
-    } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        throw error;
-    }
+      } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            throw error;
+      }
 };
 const deleteAccountByAdmin = async (id: string) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-    try {
-        await Promise.all([
-            Post.deleteMany({ author: id }).session(session),
-            Comment.deleteMany({ author: id }).session(session),
-            Notification.deleteMany({ recipient: id }).session(session),
-            Follow.deleteMany({ follower: id }).session(session),
-            Follow.deleteMany({ followed: id }).session(session)
-        ]);
-        const result = await User.findOneAndDelete({ _id: id }).session(session);
-        await session.commitTransaction();
-        session.endSession();
+      try {
+            await Promise.all([
+                  Post.deleteMany({ author: id }).session(session),
+                  Comment.deleteMany({ author: id }).session(session),
+                  Notification.deleteMany({ recipient: id }).session(session),
+                  Follow.deleteMany({ follower: id }).session(session),
+                  Follow.deleteMany({ followed: id }).session(session)
+            ]);
+            const result = await User.findByIdAndDelete(id).session(session);
+            await session.commitTransaction();
+            session.endSession();
 
-        return result;
+            return result;
 
-    } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        throw error; 
-    }
+      } catch (error: any) {
+            await session.abortTransaction();
+            session.endSession();
+            throw error;
+      }
 };
 
 
