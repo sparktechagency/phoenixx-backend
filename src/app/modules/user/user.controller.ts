@@ -159,7 +159,7 @@ const updateUserNameLimit = catchAsync(async (req: Request, res: Response, next:
       sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: 'User deleted successfully',
+            message: 'User name limit updated successfully',
             data: result,
       });
 });
