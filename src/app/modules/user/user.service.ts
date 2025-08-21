@@ -180,7 +180,6 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
             if (isExistUser.maxChangeUserName <= 0) {
                   throw new ApiError(StatusCodes.FORBIDDEN, 'You have reached the maximum limit for username changes!');
             }
-
             // Check if the new username already exists
             const existingUser = await User.findOne({ userName: payload.userName, _id: { $ne: id } });
             if (existingUser) {

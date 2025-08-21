@@ -16,6 +16,7 @@ const userSchema = new Schema<IUser, UserModal>(
                   required: true,
                   lowercase: true,
                   trim: true,
+                  unique: true,
                   minlength: 3,
                   maxlength: 30,
             },
