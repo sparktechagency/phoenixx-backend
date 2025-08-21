@@ -218,26 +218,22 @@ const deleteAccountFromDB = async (id: string, password: string) => {
 };
 const deleteAccountByAdmin = async (id: string) => {
       const session = await mongoose.startSession();
-      session.startTransaction();
 
       try {
-            await Promise.all([
-                  Post.deleteMany({ author: id }).session(session),
-                  Comment.deleteMany({ author: id }).session(session),
-                  Notification.deleteMany({ recipient: id }).session(session),
-                  Follow.deleteMany({ follower: id }).session(session),
-                  Follow.deleteMany({ followed: id }).session(session)
-            ]);
-            const result = await User.findByIdAndDelete(id).session(session);
-            await session.commitTransaction();
-            session.endSession();
+            const result = await session.withTransaction(async () => {
+                  await Post.deleteMany({ author: id }).session(session);
+                  await Comment.deleteMany({ author: id }).session(session);
+                  await Notification.deleteMany({ recipient: id }).session(session);
+                  await Follow.deleteMany({ follower: id }).session(session);
+                  await Follow.deleteMany({ followed: id }).session(session);
+
+                  return await User.findByIdAndDelete(id).session(session);
+            });
 
             return result;
 
-      } catch (error: any) {
-            await session.abortTransaction();
+      } finally {
             session.endSession();
-            throw error;
       }
 };
 
