@@ -167,8 +167,6 @@ const getUserByIdFromDB = async (id: string) => {
 const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Promise<Partial<IUser | null>> => {
       const { id } = user;
 
-      console.log(id, payload);
-
       if (payload.email) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Email cannot be changed!!!');
       }
@@ -188,11 +186,9 @@ const updateProfileToDB = async (user: JwtPayload, payload: Partial<IUser>): Pro
             if (existingUser) {
                   throw new ApiError(StatusCodes.BAD_REQUEST, 'Username already exists!');
             }
-
             // Decrement maxChangeUserName
             payload.maxChangeUserName = isExistUser.maxChangeUserName - 1;
       }
-
       const updateDoc = await User.findOneAndUpdate({ _id: id }, payload, {
             new: true,
       });
