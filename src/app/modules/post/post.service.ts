@@ -66,11 +66,10 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                   console.log('📤 Author notification sent');
             }
 
-            // 2. Find followers (author কে exclude করুন)
             const followers = await Follow.find({
                   subscribedTo: result.author,
                   subscriber: { $ne: result.author },
-            }).populate('subscriber', 'name');
+            }).populate('subscriber', 'userName');
 
             console.log('👥 Followers found:', followers.length);
 
@@ -250,7 +249,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
       const result = await postQuery.modelQuery
             .populate({
                   path: 'author',
-                  select: 'userName name email profile',
+                  select: 'userName email profile',
             })
             .populate({
                   path: 'category',
@@ -267,7 +266,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName name email profile',
+                              select: 'userName email profile',
                         },
                         populateReplies,
                   ],
@@ -285,7 +284,7 @@ const getMyPostsFromDB = async (userId: string) => {
       const result = await Post.find({ author: userId })
             .populate({
                   path: 'author',
-                  select: 'userName name email profile',
+                  select: 'userName email profile',
             })
             .populate({
                   path: 'comments',
@@ -293,7 +292,7 @@ const getMyPostsFromDB = async (userId: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName name email profile',
+                              select: 'userName email profile',
                         },
                         populateReplies,
                   ],
@@ -305,7 +304,7 @@ const getSinglePostFromDB = async (id: string) => {
 
             .populate({
                   path: 'author',
-                  select: 'userName name email profile',
+                  select: 'userName email profile',
             })
             .populate({
                   path: 'comments',
@@ -313,7 +312,7 @@ const getSinglePostFromDB = async (id: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName name email profile',
+                              select: 'userName email profile',
                         },
                         populateReplies,
                   ],
@@ -334,7 +333,7 @@ const getAllPostByUserIdFromDB = async (userId: string) => {
       const result = await Post.find({ author: userId })
             .populate({
                   path: 'author',
-                  select: 'userName name email profile',
+                  select: 'userName email profile',
             })
             .populate({
                   path: 'comments',
@@ -342,7 +341,7 @@ const getAllPostByUserIdFromDB = async (userId: string) => {
                   populate: [
                         {
                               path: 'author',
-                              select: 'userName name email profile',
+                              select: 'userName email profile',
                         },
                         populateReplies,
                   ],
