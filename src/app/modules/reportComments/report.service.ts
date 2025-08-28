@@ -115,12 +115,12 @@ const giveWarningReportedPostAuthorToDB = async (reportId: string, message: stri
       //@ts-ignore
       const io = global.io;
       if (io) {
-            io.emit(`notification::${post.author.toString()}`, notification);
+            io.emit(`notification::${comment.author.toString()}`, notification);
       }
-      const resentOtpTemplate = emailTemplate.reportWarning(reportData);
+      const resentOtpTemplate = emailTemplate.reportCommentWarning(reportData);
       emailHelper.sendEmail(resentOtpTemplate);
 
-      const reportEmailTemplate = emailTemplate.reportWarning(reportData);
+      const reportEmailTemplate = emailTemplate.reportCommentWarning(reportData);
       await emailHelper.sendEmail(reportEmailTemplate);
       return result;
 };
@@ -130,15 +130,15 @@ const deleteReportedPost = async (reportId: string) => {
       session.startTransaction();
 
       try {
-            const isExist = await Report.findById(reportId).session(session);
+            const isExist = await ReportComment.findById(reportId).session(session);
             if (!isExist) {
                   throw new Error('Report not found');
             }
 
-            await Post.findByIdAndUpdate(isExist.postId, { status: 'deleted' }, { session });
+            await Comment.findByIdAndUpdate(isExist.commentId, { status: 'deleted' }, { session });
 
-            await Report.deleteOne({ _id: isExist._id }, { session });
-            await Report.findByIdAndUpdate(
+            await ReportComment.deleteOne({ _id: isExist._id }, { session });
+            await ReportComment.findByIdAndUpdate(
                   isExist._id,
                   {
                         status: 'resolved',
