@@ -1,11 +1,12 @@
-import { Schema, model } from 'mongoose';
-import { IReport } from './report.interface';
+import { Schema, model } from "mongoose";
+import { IReportComment } from "./report.interface";
 
-const reportSchema = new Schema<IReport>(
+
+const reportSchema = new Schema<IReportComment>(
       {
-            postId: {
+            commentId: {
                   type: Schema.Types.ObjectId,
-                  ref: 'Post',
+                  ref: 'Comment',
                   required: true,
             },
             reporterId: {
@@ -32,4 +33,4 @@ const reportSchema = new Schema<IReport>(
       }
 );
 
-export const Report = model<IReport>('Report', reportSchema);
+export const ReportComment = model<IReportComment>('ReportComment', reportSchema);

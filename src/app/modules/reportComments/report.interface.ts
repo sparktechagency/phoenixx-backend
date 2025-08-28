@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 
-export type IReport = {
-      postId: Types.ObjectId;
+export type IReportComment = {
+      commentId: Types.ObjectId;
       reporterId: Types.ObjectId;
       reason: string;
       description?: string;

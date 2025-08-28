@@ -15,6 +15,6 @@ router.patch(
       ReportController.giveWarningReportedPostAuthor
 );
 router.get('/', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ReportController.getAllReports);
-router.patch('/delete-post/:id', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ReportController.deleteReportedPost);
+router.patch('/delete-comment/:id', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ReportController.deleteReportedPost);
 
 export const ReportRoutes = router;
