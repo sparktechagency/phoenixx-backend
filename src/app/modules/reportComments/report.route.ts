@@ -17,4 +17,4 @@ router.patch(
 router.get('/', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ReportController.getAllReports);
 router.patch('/delete-comment/:id', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ReportController.deleteReportedPost);
 
-export const ReportRoutes = router;
+export const ReportCommentRoutes = router;

@@ -1,44 +1,45 @@
-import { Report } from './report.model';
 import QueryBuilder from '../../../builder/QueryBuilder';
-import { IReport } from './report.interface';
 import { Post } from '../post/post.model';
 import { User } from '../user/user.model';
 import { emailTemplate } from '../../../shared/emailTemplate';
 import { emailHelper } from '../../../helpers/emailHelper';
 import mongoose from 'mongoose';
 import { Notification } from '../notification/notification.model';
+import { IReportComment } from './report.interface';
+import { Comment } from '../comments/comment.model';
+import { ReportComment } from './report.model';
 
-const createReport = async (payload: IReport) => {
-      const post = await Post.findById(payload.postId);
-      if (!post) {
-            throw new Error('Post not found');
+const createReport = async (payload: IReportComment) => {
+      const comment = await Comment.findById(payload.commentId);
+      if (!comment) {
+            throw new Error('Comment not found');
       }
 
-      const result = await Report.create(payload);
+      const result = await ReportComment.create(payload);
       if (!result) {
             throw new Error('Failed to create report');
       }
 
       const adminNotification = await Notification.create({
             recipientRole: 'admin',
-            title: 'Report Post',
-            postId: post._id,
-            message: `A user has reported a post ${post.title}`,
+            title: 'Report Comment',
+            commentId: comment._id,
+            message: `A user has reported a comment ${comment.content}`,
             type: 'report',
             recipient: payload.reporterId,
       });
       const userNotification = await Notification.create({
             recipientRole: 'user',
-            title: 'Report Post',
-            postId: post._id,
-            message: `Your post ${post.title} has been reported`,
+            title: 'Report Comment',
+            commentId: comment._id,
+            message: `Your comment ${comment.content} has been reported`,
             type: 'report',
-            recipient: post.author,
+            recipient: comment.author,
       });
       //@ts-ignore
       const io = global.io;
       if (io) {
-            io.emit(`notification::${post.author.toString()}`, userNotification);
+            io.emit(`notification::${comment.author.toString()}`, userNotification);
             io.emit(`notification::admin`, adminNotification);
       }
 
@@ -47,18 +48,18 @@ const createReport = async (payload: IReport) => {
 
 const getAllReports = async (query: Record<string, any>) => {
       const reportQuery = new QueryBuilder(
-            Report.find()
+            ReportComment.find()
                   .populate({
-                        path: 'postId',
-                        select: 'title images author',
+                        path: 'commentId',
+                        select: 'content author',
                         populate: {
                               path: 'author',
-                              select: 'userName email',
+                              select: 'userName name email',
                         },
                   })
                   .populate({
                         path: 'reporterId',
-                        select: 'userName email',
+                        select: 'userName name email',
                   }),
             query
       )
@@ -78,22 +79,22 @@ const getAllReports = async (query: Record<string, any>) => {
 };
 
 const giveWarningReportedPostAuthorToDB = async (reportId: string, message: string) => {
-      const report = await Report.findById(reportId);
+      const report = await ReportComment.findById(reportId);
       if (!report) {
             throw new Error('Report not found');
       }
 
-      const post = await Post.findById(report.postId);
-      if (!post) {
-            throw new Error('Post not found');
+      const comment = await Comment.findById(report.commentId);
+      if (!comment) {
+            throw new Error('Comment not found');
       }
 
-      const author = await User.findById(post.author);
+      const author = await User.findById(comment.author);
       if (!author) {
             throw new Error('Author not found');
       }
 
-      const result = await Report.findByIdAndUpdate(reportId, {
+      const result = await ReportComment.findByIdAndUpdate(reportId, {
             status: 'reviewed',
             new: true,
             runValidators: true,
@@ -101,15 +102,15 @@ const giveWarningReportedPostAuthorToDB = async (reportId: string, message: stri
       const reportData = {
             authorName: author.userName,
             authorEmail: author.email,
-            postTitle: post.title,
+            commentContent: comment.content,
             message: message,
       };
       const notification = await Notification.create({
             recipientRole: 'user',
-            title: 'Post Warning',
-            message: `Your post ${post.title} has been reported`,
+            title: 'Comment Warning',
+            message: `Your comment ${comment.content} has been reported`,
             type: 'warning',
-            recipient: post.author,
+            recipient: comment.author,
       });
       //@ts-ignore
       const io = global.io;
