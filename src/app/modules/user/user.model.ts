@@ -10,6 +10,10 @@ const userSchema = new Schema<IUser, UserModal>(
       {
             name: {
                   type: String,
+                  required: true,
+                  trim: true,
+                  minlength: 3,
+                  maxlength: 20,
             },
             userName: {
                   type: String,
@@ -17,7 +21,11 @@ const userSchema = new Schema<IUser, UserModal>(
                   trim: true,
                   unique: true,
                   minlength: 3,
-                  maxlength: 30,
+                  maxlength: 20,
+            },
+            bio: {
+                  type: String,
+                  default: '',
             },
             maxChangeUserName: {
                   type: Number,
