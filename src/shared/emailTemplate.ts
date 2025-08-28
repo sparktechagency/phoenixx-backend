@@ -1,4 +1,4 @@
-import { ICreateAccount, IReportWarning, IResetOtp, IResetPassword } from '../types/emailTamplate';
+import { ICreateAccount, IReportCommentWarning, IReportWarning, IResetOtp, IResetPassword } from '../types/emailTamplate';
 
 const createAccount = (values: ICreateAccount) => {
     const data = {
@@ -103,6 +103,48 @@ const reportWarning = (values: IReportWarning) => {
     };
     return data;
 };
+const reportCommentWarning = (values: IReportCommentWarning) => {
+    const data = {
+        to: values.authorEmail,
+        subject: 'Community Guidelines Warning: Comment Action Required',
+        html: `<body style="font-family: 'Arial', sans-serif; background-color: #f7f9fc; margin: 0; padding: 0; color: #333;">
+        <div style="max-width: 600px; margin: 50px auto; background-color: #ffffff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <img src="https://res.cloudinary.com/ddhhyc6mr/image/upload/v1745838639/hbtbqyhmubqaeeft5k85.png" alt="Logo" style="display: block; margin: 0 auto 20px; width:150px;" />
+          
+          <h2 style="color: #d32f2f; font-size: 28px; font-weight: 700; margin-bottom: 20px; text-align: center;">Important Notice Regarding Your Comment</h2>
+          
+          <div style="padding: 20px;">
+            <p style="color: #555; font-size: 18px; line-height: 1.6; margin-bottom: 20px;">Dear ${values.authorName},</p>
+            
+            <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              We hope this email finds you well. We are writing to inform you that your comment on the post titled "<strong>${values.commentContent}</strong>" has been reported for the following reason:
+            </p>
+            
+            <div style="background-color: #f8f8f8; padding: 15px; border-left: 4px solid #d32f2f; margin: 20px 0;">
+              <p style="color: #555; font-size: 16px; margin: 0;">${values.message}</p>
+            </div>
+            
+            <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              As a valued member of our community, we kindly remind you to review our <a href="#" style="color: #d32f2f; text-decoration: none; font-weight: bold;">community guidelines</a>. This warning serves as a notification that your comment may not align with these guidelines.
+            </p>
+            
+            <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              Please note that repeated violations may result in further action, including potential comment removal or account restrictions.
+            </p>
+            
+            <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              If you believe this warning was issued in error, please contact our <a href="#" style="color: #d32f2f; text-decoration: none; font-weight: bold;">support team</a>.
+            </p>
+            
+            <p style="color: #555; font-size: 16px; line-height: 1.6;">
+              Best regards,<br>The Community Team
+            </p>
+          </div>
+        </div>
+      </body>`,
+    };
+    return data;
+};
 
 const resetPassword = (values: IResetPassword) => {
     const data = {
@@ -141,4 +183,5 @@ export const emailTemplate = {
     resetPassword,
     resetOtp,
     reportWarning,
+    reportCommentWarning
 };

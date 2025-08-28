@@ -20,3 +20,9 @@ export type IReportWarning = {
       postTitle: string;
       message: string;
 };
+export type IReportCommentWarning = {
+      authorName: string;
+      authorEmail: string;
+      commentContent: string;
+      message: string;
+};

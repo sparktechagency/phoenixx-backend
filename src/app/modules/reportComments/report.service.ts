@@ -1,5 +1,4 @@
 import QueryBuilder from '../../../builder/QueryBuilder';
-import { Post } from '../post/post.model';
 import { User } from '../user/user.model';
 import { emailTemplate } from '../../../shared/emailTemplate';
 import { emailHelper } from '../../../helpers/emailHelper';
