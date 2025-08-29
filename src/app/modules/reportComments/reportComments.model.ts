@@ -9,6 +9,11 @@ const reportSchema = new Schema<IReportComment>(
                   ref: 'Comment',
                   required: true,
             },
+            postId: {
+                  type: Schema.Types.ObjectId,
+                  ref: 'Post',
+                  required: true,
+            },
             reporterId: {
                   type: Schema.Types.ObjectId,
                   ref: 'User',
