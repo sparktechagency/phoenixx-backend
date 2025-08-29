@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { IReportComment } from "./report.interface";
+import { IReportComment } from "./reportComments.interface";
 
 
 const reportSchema = new Schema<IReportComment>(

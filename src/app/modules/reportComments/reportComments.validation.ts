@@ -8,6 +8,6 @@ const warningReportZodSchema = z.object({
       }),
 });
 
-export const ReportValidation = {
+export const ReportCommentsValidation = {
       warningReportZodSchema,
 };

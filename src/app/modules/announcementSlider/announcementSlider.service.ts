@@ -37,11 +37,6 @@ const updateAnnouncementSlider = async (id: string, files: any, body: IAnnouncem
 };
 
 const deleteAnnouncementSlider = async (id: string) => {
-      // Count active sliders
-      const activeCount = await AnnouncementSlider.countDocuments({ status: 'active' });
-      if (activeCount <= 3) {
-            throw new Error('At least 3 active announcement sliders must remain.');
-      }
       const result = await AnnouncementSlider.findByIdAndDelete(id);
       return result;
 };

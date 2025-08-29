@@ -4,9 +4,9 @@ import { emailTemplate } from '../../../shared/emailTemplate';
 import { emailHelper } from '../../../helpers/emailHelper';
 import mongoose from 'mongoose';
 import { Notification } from '../notification/notification.model';
-import { IReportComment } from './report.interface';
+import { IReportComment } from './reportComments.interface';
 import { Comment } from '../comments/comment.model';
-import { ReportComment } from './report.model';
+import { ReportComment } from './reportComments.model';
 
 const createReport = async (payload: IReportComment) => {
       const comment = await Comment.findById(payload.commentId);
@@ -154,7 +154,7 @@ const deleteReportedPost = async (reportId: string) => {
       }
 };
 
-export const ReportService = {
+export const ReportCommentsService = {
       createReport,
       getAllReports,
       deleteReportedPost,
