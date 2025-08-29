@@ -22,6 +22,7 @@ const createReport = async (payload: IReportComment) => {
       const adminNotification = await Notification.create({
             recipientRole: 'admin',
             title: 'Report Comment',
+            postId: comment.postId,
             commentId: comment._id,
             message: `A user has reported a comment ${comment.content}`,
             type: 'report',
@@ -30,6 +31,7 @@ const createReport = async (payload: IReportComment) => {
       const userNotification = await Notification.create({
             recipientRole: 'user',
             title: 'Report Comment',
+            postId: comment.postId,
             commentId: comment._id,
             message: `Your comment ${comment.content} has been reported`,
             type: 'report',
