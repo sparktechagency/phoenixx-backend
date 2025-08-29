@@ -7,7 +7,7 @@ import { ReportCommentsValidation } from './reportComments.validation';
 
 const router = express.Router();
 
-router.post('/create-report', auth(USER_ROLES.USER), ReportCommentsController.createReport);
+router.post('/create', auth(USER_ROLES.USER), ReportCommentsController.createReport);
 router.patch(
       '/give-warning/:id',
       auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
