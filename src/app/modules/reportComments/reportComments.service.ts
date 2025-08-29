@@ -13,7 +13,7 @@ const createReport = async (payload: IReportComment) => {
       if (!comment) {
             throw new Error('Comment not found');
       }
-
+      payload.postId = comment.postId;
       const result = await ReportComment.create(payload);
       if (!result) {
             throw new Error('Failed to create report');
