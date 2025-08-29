@@ -101,7 +101,7 @@ const createCommentIntoDB = async (payload: IComment) => {
             // 1. Notify post owner (if not commenting on own post)
             if (postOwner._id.toString() !== commenter._id.toString()) {
                   const postOwnerNotification = await NotificationService.createNotificationToDB({
-                        recipient: new Types.ObjectId(postOwner._id),
+                        recipient: postOwner._id,
                         commentId: newComment._id.toString(),
                         postId: payload.postId.toString(),
                         type: 'comment',
@@ -132,7 +132,7 @@ const createCommentIntoDB = async (payload: IComment) => {
                               uniqueCommenters.add(commenterId);
                               
                               const commenterNotification = await NotificationService.createNotificationToDB({
-                                    recipient: new Types.ObjectId(comment.author.toString()),
+                                    recipient: comment.author,
                                     commentId: newComment._id.toString(),
                                     postId: payload.postId.toString(),
                                     type: 'comment_reply',
@@ -169,6 +169,8 @@ const createCommentIntoDB = async (payload: IComment) => {
             session.endSession();
       }
 };
+
+
 const getMyCommentedPost = async (userId: string) => {
       // First get unique postIds from user's comments
       const userComments = await Comment.find({ author: userId }).distinct('postId');
