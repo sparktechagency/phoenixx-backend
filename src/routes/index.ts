@@ -23,6 +23,7 @@ import { PackageRoutes } from '../app/modules/package/package.route';
 import { SubscriptionRoute } from '../app/modules/subscription/subscription.route';
 import { WebsiteLogoRoutes } from '../app/modules/websiteLogo/websiteLogo.route';
 import { FollowRoute } from '../app/modules/follow/follow.route';
+import { ReportCommentRoutes } from '../app/modules/reportComments/reportComments.route';
 
 const router = express.Router();
 
@@ -55,6 +56,10 @@ const apiRoutes = [
       {
             path: '/reports',
             route: ReportRoutes,
+      },
+      {
+            path: '/reports-comments',
+            route: ReportCommentRoutes,
       },
       {
             path: '/save-post',
