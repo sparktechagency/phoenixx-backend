@@ -5,6 +5,27 @@ import { Category } from './category.model';
 import { Post } from '../post/post.model';
 import { ICategory } from './category.interface';
 import mongoose from 'mongoose';
+import slugify from 'slugify';
+
+const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
+      let baseSlug = slugify(title, { lower: true });
+      let slug = baseSlug;
+      let counter = 1;
+
+      // Build query to exclude current post (for update scenario)
+      const query: any = { slug };
+      if (excludeId) {
+            query._id = { $ne: excludeId };
+      }
+
+      while (await Category.findOne(query)) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+            query.slug = slug; // Update query for next iteration
+      }
+
+      return slug;
+};
 
 const createCategoryIntoDB = async (data: ICategory, files: any) => {
       if (!files) {
@@ -16,6 +37,7 @@ const createCategoryIntoDB = async (data: ICategory, files: any) => {
       if (files && 'darkImage' in files && files.darkImage[0]) {
             data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
       }
+      data.slug = await createUniqueSlug(data.name);
       const result = await Category.create(data);
       if (!result) {
             throw new Error('Failed to create category');
@@ -106,7 +128,7 @@ const updateCategoryByIdFromDB = async (id: string, data: ICategory, files: any)
             data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
             unlinkFile(existingCategory.darkImage);
       }
-      
+      data.slug = await createUniqueSlug(data.name, id);
 
       const result = await Category.findOneAndUpdate({ _id: id }, data, { new: true, upsert: true });
       if (!result) {

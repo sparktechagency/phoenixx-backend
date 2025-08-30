@@ -2,7 +2,27 @@ import QueryBuilder from '../../../builder/QueryBuilder';
 import unlinkFile from '../../../shared/unlinkFile';
 import { ISubcategory } from './subcategory.interface';
 import { Subcategory } from './subcategory.model';
+import slugify from 'slugify';
 
+const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
+      let baseSlug = slugify(title, { lower: true });
+      let slug = baseSlug;
+      let counter = 1;
+
+      // Build query to exclude current post (for update scenario)
+      const query: any = { slug };
+      if (excludeId) {
+            query._id = { $ne: excludeId };
+      }
+
+      while (await Subcategory.findOne(query)) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+            query.slug = slug; // Update query for next iteration
+      }
+
+      return slug;
+};
 const createSubcategoryIntoDB = async (data: ISubcategory, files: any) => {
       if (files && 'image' in files && files.image[0]) {
             data.image = `/images/${files.image[0].filename}`;
@@ -10,6 +30,7 @@ const createSubcategoryIntoDB = async (data: ISubcategory, files: any) => {
       if (files && 'darkImage' in files && files.darkImage[0]) {
             data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
       }
+      data.slug = await createUniqueSlug(data.name);
       const result = await Subcategory.create(data);
       if (!result) {
             throw new Error('Failed to create subcategory');
@@ -64,6 +85,7 @@ const updateSubcategoryByIdFromDB = async (id: string, data: ISubcategory, files
             data.darkImage = `/darkImages/${files.darkImage[0].filename}`;
             unlinkFile(existingSubcategory.darkImage);
       }
+      data.slug = await createUniqueSlug(data.name, id);
 
       const result = await Subcategory.findOneAndUpdate({ _id: id }, data, { new: true, upsert: true });
       if (!result) {
