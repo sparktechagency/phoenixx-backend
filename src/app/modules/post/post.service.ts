@@ -281,11 +281,11 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
             })
             .populate({
                   path: 'category',
-                  select: 'name',
+                  select: 'name slug',
             })
             .populate({
                   path: 'subCategory',
-                  select: 'name',
+                  select: 'name slug',
             })
 
             .populate({
