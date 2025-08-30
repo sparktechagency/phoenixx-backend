@@ -35,14 +35,21 @@ const populateReplies = {
             },
       ],
 };
-const createUniqueSlug = async (title: string): Promise<string> => {
+const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
       let baseSlug = slugify(title, { lower: true });
       let slug = baseSlug;
       let counter = 1;
 
-      while (await Post.findOne({ slug })) {
+      // Build query to exclude current post (for update scenario)
+      const query: any = { slug };
+      if (excludeId) {
+            query._id = { $ne: excludeId };
+      }
+
+      while (await Post.findOne(query)) {
             slug = `${baseSlug}-${counter}`;
             counter++;
+            query.slug = slug; // Update query for next iteration
       }
 
       return slug;
@@ -188,10 +195,10 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
 // };
 const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any) => {
       const existingPost = await Post.findById(id);
-
       if (!existingPost) {
             throw new Error('Post not found');
       }
+
       // Start with existing images
       let images = [...existingPost.images];
 
@@ -205,6 +212,7 @@ const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any)
                   });
             }
       }
+
       // Add new images (if any)
       if (files?.image?.length > 0) {
             const newImages = files.image.map((file: any) => `/images/${file.filename}`);
@@ -213,6 +221,12 @@ const updatePostIntoDB = async (id: string, payload: Partial<IPost>, files: any)
 
       // Update payload with the final images array
       payload.images = images;
+
+      // Handle slug update if title is changed
+      if (payload.title && payload.title !== existingPost.title) {
+            payload.slug = await createUniqueSlug(payload.title, id);
+            console.log(`🔄 Slug updated: ${existingPost.slug} → ${payload.slug}`);
+      }
 
       const result = await Post.findByIdAndUpdate(id, payload, {
             new: true,
