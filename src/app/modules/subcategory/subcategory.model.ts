@@ -9,6 +9,7 @@ const subcategorySchema = new Schema<ISubcategory>(
                   required: true,
             },
             name: { type: String, required: true, maxlength: 20 },
+            slug: { type: String, required: true, unique: true },
             description: { type: String, required: true },
             image: { type: String, required: true },
             darkImage: { type: String, required: true },
