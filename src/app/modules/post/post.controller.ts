@@ -69,8 +69,8 @@ const getMyLikedPost = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getSinglePost = catchAsync(async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const result = await PostService.getSinglePostFromDB(id);
+      const { slug } = req.params;
+      const result = await PostService.getSinglePostFromDB(slug);
       sendResponse(res, {
             success: true,
             statusCode: 200,

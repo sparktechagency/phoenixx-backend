@@ -313,8 +313,8 @@ const getMyPostsFromDB = async (userId: string) => {
             });
       return result;
 };
-const getSinglePostFromDB = async (id: string) => {
-      const result = await Post.findOneAndUpdate({ _id: id }, { $inc: { views: 1 } }, { new: true })
+const getSinglePostFromDB = async (slug: string) => {
+      const result = await Post.findOneAndUpdate({ slug: slug }, { $inc: { views: 1 } }, { new: true })
 
             .populate({
                   path: 'author',
