@@ -7,6 +7,11 @@ const postSchema = new Schema<IPost>(
                   type: String,
                   required: true,
             },
+            slug: {
+                  type: String,
+                  required: true,
+                  unique: true,
+            },
             content: {
                   type: String,
                   required: true,

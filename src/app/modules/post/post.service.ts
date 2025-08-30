@@ -8,6 +8,7 @@ import mongoose, { Types } from 'mongoose';
 import { User } from '../user/user.model';
 import { Report } from '../report/report.model';
 import { Follow } from '../follow/follow.model';
+import slugify from 'slugify';
 
 const populateReplies = {
       path: 'replies',
@@ -34,6 +35,19 @@ const populateReplies = {
             },
       ],
 };
+const createUniqueSlug = async (title: string): Promise<string> => {
+      let baseSlug = slugify(title, { lower: true });
+      let slug = baseSlug;
+      let counter = 1;
+
+      while (await Post.findOne({ slug })) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+      }
+
+      return slug;
+};
+
 const createPostIntoDB = async (payload: IPost, files: any) => {
       const user = await User.findById(payload.author);
       if (!user) {
@@ -43,7 +57,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
       if (files?.image?.length > 0) {
             payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
       }
-
+      payload.slug = await createUniqueSlug(payload.title);
       const result = await Post.create(payload);
 
       if (result.author) {

@@ -3,6 +3,7 @@ import { ObjectId } from 'mongoose';
 export type IPost = {
       deletedImages?: string[];
       title: string;
+      slug: string;
       content: string;
       images: string[];
       status: 'active' | 'deleted';
