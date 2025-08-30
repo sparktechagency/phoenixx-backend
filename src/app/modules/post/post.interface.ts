@@ -4,6 +4,8 @@ export type IPost = {
       deletedImages?: string[];
       title: string;
       slug: string;
+      categorySlug: string;
+      subCategorySlug: string;
       content: string;
       images: string[];
       status: 'active' | 'deleted';

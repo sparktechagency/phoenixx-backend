@@ -30,9 +30,17 @@ const postSchema = new Schema<IPost>(
                   ref: 'Category',
                   required: true,
             },
+            categorySlug: {
+                  type: String,
+                  required: true,
+            },
             subCategory: {
                   type: Schema.Types.ObjectId,
                   ref: 'Subcategory',
+                  required: false,
+            },
+            subCategorySlug: {
+                  type: String,
                   required: false,
             },
             author: {
