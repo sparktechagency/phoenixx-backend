@@ -41,7 +41,7 @@ const postSchema = new Schema<IPost>(
             },
             subCategorySlug: {
                   type: String,
-                  required: false,
+                  required: true,
             },
             author: {
                   type: Schema.Types.ObjectId,
