@@ -277,14 +277,12 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
   if (query.searchTerm && typeof query.searchTerm === 'string' && query.searchTerm.trim()) {
     const searchTerm = query.searchTerm.trim();
     
-    // userName দিয়ে search করার জন্য matching users খুঁজুন
     const users = await User.find({
       userName: { $regex: searchTerm, $options: 'i' }
     }).select('_id');
     
     const userIds = users.map(user => user._id);
-    
-    // Combined search: title অথবা author userName এ search
+
     const searchConditions = {
       $or: [
         { title: { $regex: searchTerm, $options: 'i' } },
@@ -293,7 +291,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
     };
     
     const modifiedQuery = { ...query };
-    delete modifiedQuery.searchTerm; // searchTerm parameter remove করুন
+    delete modifiedQuery.searchTerm; 
     
     postQuery = new QueryBuilder(
       Post.find(searchConditions), 
@@ -301,7 +299,6 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
     ).filter().sort().paginate().fields();
     
   } else {
-    // Normal search (title এ search)
     postQuery = new QueryBuilder(Post.find(), query)
       .search(['title'])
       .filter()
