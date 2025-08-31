@@ -159,8 +159,8 @@ const deleteAdminToDB = async (id: string) => {
       return result;
 };
 
-const getUserByIdFromDB = async (userName: string) => {
-      const result = await User.findOne({ userName: userName, status: 'active' });
+const getUserByIdFromDB = async (id: string) => {
+      const result = await User.findOne({ _id: id, status: 'active' });
       return result;
 };
 
