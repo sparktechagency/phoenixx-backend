@@ -12,7 +12,7 @@ import slugify from 'slugify';
 
 const populateReplies = {
       path: 'replies',
-      select: 'content author likes replies',
+      select: 'content author likes replies createdAt',
       populate: [
             {
                   path: 'author',
@@ -325,7 +325,7 @@ const getAllPostsFromDB = async (query: Record<string, any>) => {
     })
     .populate({
       path: 'comments',
-      select: 'content author replies likes',
+      select: 'content author replies likes createdAt',
       populate: [
         {
           path: 'author',
