@@ -272,41 +272,103 @@ const likePostIntoDB = async (id: string, userId: string) => {
 };
 
 const getAllPostsFromDB = async (query: Record<string, any>) => {
-      const postQuery = new QueryBuilder(Post.find(), query).search(['title']).filter().sort().paginate().fields();
+  let postQuery;
+  
+  if (query.searchTerm) {
+    const users = await User.find({
+      userName: { $regex: query.search, $options: 'i' }
+    }).select('_id');
+    
+    const userIds = users.map(user => user._id);
+    
+    const modifiedQuery = { ...query };
+    delete modifiedQuery.searchTerm;
+    
+    postQuery = new QueryBuilder(
+      Post.find({ author: { $in: userIds } }), 
+      modifiedQuery
+    ).filter().sort().paginate().fields();
+    
+  } else {
+    // Normal search (title এ search)
+    postQuery = new QueryBuilder(Post.find(), query)
+      .search(['title'])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+  }
 
-      const result = await postQuery.modelQuery
-            .populate({
-                  path: 'author',
-                  select: 'userName name email profile',
-            })
-            .populate({
-                  path: 'category',
-                  select: 'name slug',
-            })
-            .populate({
-                  path: 'subCategory',
-                  select: 'name slug',
-            })
+  const result = await postQuery.modelQuery
+    .populate({
+      path: 'author',
+      select: 'userName name email profile',
+    })
+    .populate({
+      path: 'category',
+      select: 'name slug',
+    })
+    .populate({
+      path: 'subCategory',
+      select: 'name slug',
+    })
+    .populate({
+      path: 'comments',
+      select: 'content author replies likes',
+      populate: [
+        {
+          path: 'author',
+          select: 'userName name email profile',
+        },
+        populateReplies,
+      ],
+    });
 
-            .populate({
-                  path: 'comments',
-                  select: 'content author replies likes',
-                  populate: [
-                        {
-                              path: 'author',
-                              select: 'userName name email profile',
-                        },
-                        populateReplies,
-                  ],
-            });
+  const meta = await postQuery.countTotal();
 
-      const meta = await postQuery.countTotal();
-
-      return {
-            meta,
-            data: result,
-      };
+  return {
+    meta,
+    data: result,
+  };
 };
+
+
+// const getAllPostsFromDB = async (query: Record<string, any>) => {
+//       const postQuery = new QueryBuilder(Post.find(), query).search(['title']).filter().sort().paginate().fields();
+
+//       const result = await postQuery.modelQuery
+//             .populate({
+//                   path: 'author',
+//                   select: 'userName name email profile',
+//             })
+//             .populate({
+//                   path: 'category',
+//                   select: 'name slug',
+//             })
+//             .populate({
+//                   path: 'subCategory',
+//                   select: 'name slug',
+//             })
+
+//             .populate({
+//                   path: 'comments',
+//                   select: 'content author replies likes',
+//                   populate: [
+//                         {
+//                               path: 'author',
+//                               select: 'userName name email profile',
+//                         },
+//                         populateReplies,
+//                   ],
+//             });
+
+//       const meta = await postQuery.countTotal();
+
+//       return {
+//             meta,
+//             data: result,
+//       };
+// };
 
 const getMyPostsFromDB = async (userId: string) => {
       const result = await Post.find({ author: userId })
