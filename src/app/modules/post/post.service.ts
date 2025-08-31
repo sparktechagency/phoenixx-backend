@@ -274,18 +274,29 @@ const likePostIntoDB = async (id: string, userId: string) => {
 const getAllPostsFromDB = async (query: Record<string, any>) => {
   let postQuery;
   
-  if (query.searchTerm) {
+  if (query.searchTerm && typeof query.searchTerm === 'string' && query.searchTerm.trim()) {
+    const searchTerm = query.searchTerm.trim();
+    
+    // userName দিয়ে search করার জন্য matching users খুঁজুন
     const users = await User.find({
-      userName: { $regex: query.search, $options: 'i' }
+      userName: { $regex: searchTerm, $options: 'i' }
     }).select('_id');
     
     const userIds = users.map(user => user._id);
     
+    // Combined search: title অথবা author userName এ search
+    const searchConditions = {
+      $or: [
+        { title: { $regex: searchTerm, $options: 'i' } },
+        ...(userIds.length > 0 ? [{ author: { $in: userIds } }] : [])
+      ]
+    };
+    
     const modifiedQuery = { ...query };
-    delete modifiedQuery.searchTerm;
+    delete modifiedQuery.searchTerm; // searchTerm parameter remove করুন
     
     postQuery = new QueryBuilder(
-      Post.find({ author: { $in: userIds } }), 
+      Post.find(searchConditions), 
       modifiedQuery
     ).filter().sort().paginate().fields();
     
