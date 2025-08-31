@@ -437,6 +437,14 @@ const getAllPostByUserIdFromDB = async (userId: string) => {
                   select: 'userName name email profile',
             })
             .populate({
+                  path: 'category',
+                  select: 'name slug',
+            })
+            .populate({
+                  path: 'subCategory',
+                  select: 'name slug',
+            })
+            .populate({
                   path: 'comments',
                   select: 'content author replies likes createdAt',
                   populate: [
