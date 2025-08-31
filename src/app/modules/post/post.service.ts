@@ -1,7 +1,6 @@
 import QueryBuilder from '../../../builder/QueryBuilder';
 import unlinkFile from '../../../shared/unlinkFile';
 import { IPost } from './post.interface';
-
 import { Post } from './post.model';
 import { NotificationService } from '../notification/notification.service';
 import mongoose, { Types } from 'mongoose';
