@@ -23,7 +23,7 @@ router.get('/',  PostController.getAllPosts);
 
 router.get('/:slug', PostController.getSinglePost);
 router.get('/all-posts/my-liked-posts', auth(USER_ROLES.USER), PostController.getMyLikedPost);
-router.get('/get-all-post-by-user-id/:id', PostController.getAllPostByUserId);
+router.get('/get-all-post-by-user-id/:userName', PostController.getAllPostByUserId);
 
 
 router.get('/all-posts/my-posts', auth(USER_ROLES.USER), PostController.getMyPosts);

@@ -4,6 +4,7 @@ export type IPost = {
       deletedImages?: string[];
       title: string;
       slug: string;
+      userName: string;
       categorySlug: string;
       subCategorySlug: string;
       content: string;

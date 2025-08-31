@@ -63,6 +63,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
       if (files?.image?.length > 0) {
             payload.images = files.image?.map((file: any) => `/images/${file.filename}`);
       }
+      payload.userName = user.userName;
       payload.slug = await createUniqueSlug(payload.title);
       const result = await Post.create(payload);
 
@@ -429,8 +430,8 @@ const getMyLikedPostFromDB = async (userId: string) => {
       return result;
 };
 
-const getAllPostByUserIdFromDB = async (userId: string) => {
-      const result = await Post.find({ author: userId })
+const getAllPostByUserIdFromDB = async (userName: string) => {
+      const result = await Post.find({ userName: userName })
             .populate({
                   path: 'author',
                   select: 'userName name email profile',

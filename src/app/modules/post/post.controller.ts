@@ -80,8 +80,8 @@ const getSinglePost = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllPostByUserId = catchAsync(async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const result = await PostService.getAllPostByUserIdFromDB(id);
+      const { userName } = req.params;
+      const result = await PostService.getAllPostByUserIdFromDB(userName);
       sendResponse(res, {
             success: true,
             statusCode: 200,
