@@ -74,7 +74,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
             // 1. Create author notification
             const authorNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
-                  postId: result._id.toString(),
+                  postId: result.slug,
                   type: 'post',
                   title: 'New Post Created',
                   message: `Your post has created successfully`,
@@ -100,7 +100,7 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                         try {
                               const followerNotification = await NotificationService.createNotificationToDB({
                                     recipient: new Types.ObjectId((follow.subscriber as any)._id.toString()),
-                                    postId: result._id.toString(),
+                                    postId: result.slug,
                                     type: 'new_post_from_following',
                                     title: 'New Post from Someone You Follow',
                                     message: `${user.userName} has created a new post`,

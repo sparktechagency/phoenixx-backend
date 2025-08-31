@@ -77,7 +77,7 @@ const getAllAdmin = catchAsync(async (req: Request, res: Response) => {
       });
 });
 const getUserById = catchAsync(async (req: Request, res: Response) => {
-      const result = await UserService.getUserByIdFromDB(req?.params?.id);
+      const result = await UserService.getUserByIdFromDB(req?.params?.userName);
       sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,

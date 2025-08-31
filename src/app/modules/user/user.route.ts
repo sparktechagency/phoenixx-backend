@@ -32,7 +32,7 @@ router.route('/update-profile').patch(
 );
 
 // get all admins
-router.get('/single-user/:id', UserController.getUserById);
+router.get('/single-user/:userName', UserController.getUserById);
 router.get('/get-all-users', auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN), UserController.getAllUsers);
 router.route('/all-admin').get(auth(USER_ROLES.SUPER_ADMIN), UserController.getAllAdmin);
 router.delete('/delete-admin/:id', auth(USER_ROLES.SUPER_ADMIN), UserController.deleteAdmin);
