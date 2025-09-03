@@ -26,8 +26,8 @@ const unsubscribe = catchAsync(async (req, res) => {
 });
 const getSubscriptions = catchAsync(async (req, res) => {
       const { id } = req.user;
-      const { userId } = req.params;
-      const subscribers = await FollowService.isUserSubscribed(id, userId);
+      const { userName } = req.params;
+      const subscribers = await FollowService.isUserSubscribed(id, userName);
       sendResponse(res, {
             statusCode: 200,
             success: true,

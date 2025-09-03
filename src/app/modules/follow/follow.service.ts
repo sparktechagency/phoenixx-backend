@@ -60,8 +60,12 @@ const unsubscribe = async (subscriberId: string, subscribedToId: string) => {
       return existingSubscription;
 };
 // Get all subscribers of a specific user
-const getSubscribers = async (userId: string) => {
-      const subscribers = await Follow.find({ subscribedTo: userId }).populate('subscriber', 'name');
+const getSubscribers = async (userName: string) => {
+      const user = await User.findOne({ userName });
+      if (!user) {
+            throw new ApiError(404, 'User not found');
+      }
+      const subscribers = await Follow.find({ subscribedTo: user._id }).populate('subscriber', 'name userName');
       return subscribers.map((sub) => sub.subscriber); // Return an array of subscribers
 };
 

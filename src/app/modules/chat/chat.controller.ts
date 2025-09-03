@@ -3,11 +3,15 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import { ChatService } from './chat.service';
+import { User } from '../user/user.model';
 
 const createChat = catchAsync(async (req, res) => {
-  const participant = req.body.participant;
+  const participantId = await User.findOne({userName: req.body.participant});
+  if (!participantId) {
+    throw new Error('Participant not found');
+  }
   const { id }: any = req.user;
-  const participants = [id, participant];
+  const participants = [id, participantId._id];
   const result = await ChatService.createChatIntoDB(participants);
 
   sendResponse(res, {
