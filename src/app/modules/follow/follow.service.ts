@@ -6,6 +6,8 @@ import { User } from '../user/user.model';
 
 const subscribe = async (subscriberId: string, userName: string) => {
       const subscribedToId = await User.findOne({ userName: userName });
+      console.log("subscribedToId", subscribedToId);
+      console.log("subscribedToId._id", subscribedToId?._id);
       if (!subscribedToId) {
             throw new ApiError(404, 'User not found');
       }
