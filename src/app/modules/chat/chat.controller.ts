@@ -13,12 +13,12 @@ const createChat = catchAsync(async (req, res) => {
   const { id }: any = req.user;
   const participants = [id, participantId._id];
   const result = await ChatService.createChatIntoDB(participants);
-
+  const chatData = result.toObject ? result.toObject() : result;
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Chat created successfully',
-    data: { ...result, participantName: participantId.userName },
+    data: { ...chatData, participantName: participantId.userName },
   });
 });
 
