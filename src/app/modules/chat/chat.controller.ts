@@ -6,7 +6,7 @@ import { ChatService } from './chat.service';
 import { User } from '../user/user.model';
 
 const createChat = catchAsync(async (req, res) => {
-  const participantId = await User.findOne({userName: req.body.participant});
+  const participantId = await User.findOne({ userName: req.body.participant });
   if (!participantId) {
     throw new Error('Participant not found');
   }
@@ -18,7 +18,7 @@ const createChat = catchAsync(async (req, res) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Chat created successfully',
-    data: result,
+    data: { ...result, participantName: participantId.userName },
   });
 });
 
@@ -34,7 +34,7 @@ const markChatAsRead = catchAsync(async (req, res) => {
     data: result,
   });
 });
-const markMessagesAsIconViewed  = catchAsync(async (req, res) => {
+const markMessagesAsIconViewed = catchAsync(async (req, res) => {
   const user: any = req?.user;
   const result = await ChatService.markMessagesAsIconViewed(user.id);
   sendResponse(res, {
