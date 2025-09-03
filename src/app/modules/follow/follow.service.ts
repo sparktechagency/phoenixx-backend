@@ -5,6 +5,7 @@ import { NotificationService } from '../notification/notification.service';
 import { User } from '../user/user.model';
 
 const subscribe = async (subscriberId: string, userName: string) => {
+      console.log(userName, 'userName');
       const subscribedToId = await User.findOne({ userName: userName });
       console.log("subscribedToId", subscribedToId);
       console.log("subscribedToId._id", subscribedToId?._id);
