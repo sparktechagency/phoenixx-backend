@@ -4,16 +4,20 @@ import { Follow } from './follow.model';
 import { NotificationService } from '../notification/notification.service';
 import { User } from '../user/user.model';
 
-const subscribe = async (subscriberId: string, subscribedToId: string) => {
+const subscribe = async (subscriberId: string, userName: string) => {
+      const subscribedToId = await User.findOne({ userName: userName });
+      if (!subscribedToId) {
+            throw new ApiError(404, 'User not found');
+      }
       // Check if already subscribed
-      const existingSubscription = await Follow.findOne({ subscriber: subscriberId, subscribedTo: subscribedToId });
+      const existingSubscription = await Follow.findOne({ subscriber: subscriberId, subscribedTo: subscribedToId._id });
       if (existingSubscription) {
             throw new ApiError(400, 'You are already subscribed to this user.');
       }
 
       // Get user details for notification
       const subscriber = await User.findById(subscriberId);
-      const subscribedToUser = await User.findById(subscribedToId);
+      const subscribedToUser = await User.findById(subscribedToId._id);
 
       if (!subscriber || !subscribedToUser) {
             throw new ApiError(404, 'User not found');
@@ -22,14 +26,14 @@ const subscribe = async (subscriberId: string, subscribedToId: string) => {
       // Create a new subscription
       const follow = new Follow({
             subscriber: subscriberId,
-            subscribedTo: subscribedToId,
+            subscribedTo: subscribedToId._id,
       });
 
       await follow.save();
 
       // Create notification for the user being followed
       const newFollowerNotification = await NotificationService.createNotificationToDB({
-            recipient: new Types.ObjectId(subscribedToId),
+            recipient: new Types.ObjectId(subscribedToId._id),
             type: 'new_follower',
             title: 'New Follower',
             followerId: new Types.ObjectId(subscriberId),
@@ -41,17 +45,21 @@ const subscribe = async (subscriberId: string, subscribedToId: string) => {
       //@ts-ignore
       const io = global.io;
       if (io) {
-            io.emit(`notification::${subscribedToId}`, newFollowerNotification);
+            io.emit(`notification::${subscribedToId._id}`, newFollowerNotification);
       }
 
       return follow;
 };
 // Unsubscribe from a user
-const unsubscribe = async (subscriberId: string, subscribedToId: string) => {
+const unsubscribe = async (subscriberId: string, userName: string) => {
+      const subscribedToId = await User.findOne({ userName: userName });
+      if (!subscribedToId) {
+            throw new ApiError(404, 'User not found');
+      }
       // Check if the user is subscribed
       const existingSubscription = await Follow.findOneAndDelete({
             subscriber: subscriberId,
-            subscribedTo: subscribedToId,
+            subscribedTo: subscribedToId._id,
       });
 
       if (!existingSubscription) {

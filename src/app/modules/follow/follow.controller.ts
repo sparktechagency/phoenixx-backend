@@ -4,8 +4,8 @@ import { FollowService } from './follow.service';
 
 const subscribe = catchAsync(async (req, res) => {
       const subscriberId = req.user.id;
-      const { subscribedToId } = req.body;
-      const follow = await FollowService.subscribe(subscriberId, subscribedToId);
+      const { userName } = req.body;
+      const follow = await FollowService.subscribe(subscriberId, userName);
       sendResponse(res, {
             statusCode: 200,
             success: true,
@@ -15,8 +15,8 @@ const subscribe = catchAsync(async (req, res) => {
 });
 const unsubscribe = catchAsync(async (req, res) => {
       const subscriberId = req.user.id;
-      const { subscribedToId } = req.body;
-      const follow = await FollowService.unsubscribe(subscriberId, subscribedToId);
+      const { userName } = req.body;
+      const follow = await FollowService.unsubscribe(subscriberId, userName);
       sendResponse(res, {
             statusCode: 200,
             success: true,
