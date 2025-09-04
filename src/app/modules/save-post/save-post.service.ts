@@ -19,35 +19,29 @@ const savePostToDB = async (payload: ISavePost) => {
 };
 
 const getAllSavedPostsByUser = async (userId: string) => {
-  // Simply find all saved posts by the user and populate the post details
-  const result = await SavePost.find({ userId: userId }).populate({
-    path: 'postId',
-    select: '_id title slug images author category subCategory comments likes views',
-    populate: [
-      {
-        path: 'author',
-        select: 'userName name email profile',
-      },
-      {
-        path: 'category',
-        select: 'name slug',
-        populate: {
-          path: 'subCategory',
-          select: 'name slug',
-        },
-      },
-      {
-        path: 'subCategory',
-        select: 'name slug',
-        populate: {
-          path: 'category',
-          select: 'name slug',
-        },
-      },
-    ],
-  });
-  
-  return result;
+      // Simply find all saved posts by the user and populate the post details
+      const result = await SavePost.find({ userId: userId }).populate({
+            path: 'postId',
+            select: '_id title slug images author category subCategory comments likes views',
+            populate: [
+                  {
+                        path: 'author',
+                        select: 'userName name email profile',
+                  },
+                  {
+                        path: 'subCategory',
+                        select: 'name slug',
+                  },
+                  {
+
+                        path: 'category',
+                        select: 'name slug',
+
+                  },
+            ],
+      });
+
+      return result;
 };
 
 export const SavePostService = {
