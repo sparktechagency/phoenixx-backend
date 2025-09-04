@@ -32,10 +32,18 @@ const getAllSavedPostsByUser = async (userId: string) => {
                   {
                         path: 'category',
                         select: 'name slug',
+                        populate: {
+                              path: 'subCategory',
+                              select: 'name slug',
+                        },
                   },
                   {
                         path: 'subCategory',
                         select: 'name slug',
+                        populate: {
+                              path: 'category',
+                              select: 'name slug',
+                        },
                   },
             ],
       });
