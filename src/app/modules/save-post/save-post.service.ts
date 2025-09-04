@@ -1,4 +1,3 @@
-import { Post } from '../post/post.model';
 import { ISavePost } from './save-post.interface';
 import { SavePost } from './save-post.model';
 
@@ -19,19 +18,28 @@ const savePostToDB = async (payload: ISavePost) => {
       }
 };
 
-// ✅ সঠিক approach - Option 2: Post collection থেকে directly
 const getAllSavedPostsByUser = async (userId: string) => {
-      const savedPosts = await SavePost.find({ userId: userId }).select('postId');
-      const postIds = savedPosts.map(saved => saved.postId);
-
-      // Post collection থেকে directly posts নিন
-      const posts = await Post.find({ _id: { $in: postIds } })
-            .populate('author', 'userName name email profile')
-            .populate('category', 'name slug')
-            .populate('subCategory', 'name slug')
-            .select('_id title slug images author category subCategory comments likes views');
-
-      return posts;
+      const result = await SavePost.find({ userId: userId });
+      const postIds = result.map((post) => post.postId);
+      const result2 = await SavePost.find({ postId: { $in: postIds } }).populate({
+            path: 'postId',
+            select: '_id title slug images author category subCategory comments likes views',
+            populate: [
+                  {
+                        path: 'author',
+                        select: 'userName name email profile',
+                  },
+                  {
+                        path: 'category',
+                        select: 'name slug',
+                  },
+                  {
+                        path: 'subCategory',
+                        select: 'name slug',
+                  },
+            ],
+      });
+      return result2;
 };
 
 export const SavePostService = {
