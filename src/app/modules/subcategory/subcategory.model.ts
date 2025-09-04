@@ -8,7 +8,7 @@ const subcategorySchema = new Schema<ISubcategory>(
                   ref: 'Category',
                   required: true,
             },
-            name: { type: String, required: true, maxlength: 20 },
+            name: { type: String, required: true, maxlength: 40 },
             slug: { type: String, required: true, unique: true },
             description: { type: String, required: true },
             image: { type: String, required: true },
