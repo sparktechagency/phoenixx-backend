@@ -23,7 +23,7 @@ const getAllSavedPostsByUser = async (userId: string) => {
       const postIds = result.map((post) => post.postId);
       const result2 = await SavePost.find({ postId: { $in: postIds } }).populate({
             path: 'postId',
-            select: '_id title images author category subCategory comments likes views',
+            select: '_id title slug images author category subCategory comments likes views',
             populate: [
                   {
                         path: 'author',
@@ -31,11 +31,11 @@ const getAllSavedPostsByUser = async (userId: string) => {
                   },
                   {
                         path: 'category',
-                        select: 'name',
+                        select: 'name slug',
                   },
                   {
                         path: 'subCategory',
-                        select: 'name',
+                        select: 'name slug',
                   },
             ],
       });
