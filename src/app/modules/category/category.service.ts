@@ -22,7 +22,7 @@ const createUniqueSlug = async (title: string, excludeId?: string): Promise<stri
       // Check if category with same slug already exists
       const existingCategory = await Category.findOne(query);
       if (existingCategory) {
-            throw new ApiError(400, `${baseSlug} already exists. Please use a different.`);
+            throw new ApiError(400, `${title} already exists. Please use a different.`);
       }
       //TODO: end here
       while (await Category.findOne(query)) {
