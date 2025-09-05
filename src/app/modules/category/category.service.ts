@@ -142,12 +142,12 @@ const deleteCategoryByIdFromDB = async (id: string) => {
       try {
             session.startTransaction();
 
-            const result = await Category.findOneAndUpdate({ _id: id }, { status: 'deleted' }, { new: true, session });
+            const result = await Category.findOneAndDelete({ _id: id });
             if (!result) {
                   throw new Error('Category not found');
             }
 
-            await Subcategory.updateMany({ categoryId: id }, { status: 'deleted' }, { session });
+            await Subcategory.deleteMany({ categoryId: id }, { session });
 
             await session.commitTransaction();
             return result;

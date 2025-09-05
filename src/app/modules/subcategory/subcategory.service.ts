@@ -95,10 +95,8 @@ const updateSubcategoryByIdFromDB = async (id: string, data: ISubcategory, files
 };
 
 const deleteSubcategoryByIdFromDB = async (id: string) => {
-      const result = await Subcategory.findOneAndUpdate(
+      const result = await Subcategory.findOneAndDelete(
             { _id: id },
-            { status: 'deleted' },
-            { new: true, upsert: true }
       );
       if (!result) {
             throw new Error('Subcategory not found');
