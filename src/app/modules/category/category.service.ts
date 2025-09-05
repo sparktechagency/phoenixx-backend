@@ -22,7 +22,7 @@ const createUniqueSlug = async (title: string, excludeId?: string): Promise<stri
       // Check if category with same slug already exists
       const existingCategory = await Category.findOne(query);
       if (existingCategory) {
-            throw new ApiError(400, `Slug ${baseSlug} already exists. Please use a different title.`);
+            throw new ApiError(400, `${baseSlug} already exists. Please use a different.`);
       }
       //TODO: end here
       while (await Category.findOne(query)) {
@@ -129,7 +129,7 @@ const updateCategoryByIdFromDB = async (id: string, data: ICategory, files: any)
       if (data.name) {
             const existingCategoryWithSameName = await Category.findOne({ name: data.name });
             if (existingCategoryWithSameName) {
-                  throw new ApiError(400, `Category name ${data.name} already exists. Please use a different name.`);
+                  throw new ApiError(400, `Category name ${data.name} already exists. Please use a different.`);
             }
       }
       // TODO: END
