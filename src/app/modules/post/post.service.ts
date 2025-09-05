@@ -8,6 +8,7 @@ import { User } from '../user/user.model';
 import { Report } from '../report/report.model';
 import { Follow } from '../follow/follow.model';
 import slugify from 'slugify';
+import { SavePost } from '../save-post/save-post.model';
 
 const populateReplies = {
       path: 'replies',
@@ -35,23 +36,29 @@ const populateReplies = {
       ],
 };
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-      let baseSlug = slugify(title, { lower: true });
-      let slug = baseSlug;
-      let counter = 1;
+  let baseSlug = slugify(title, { lower: true });
+  let slug = baseSlug;
+  let counter = 1;
 
-      // Build query to exclude current post (for update scenario)
-      const query: any = { slug };
-      if (excludeId) {
-            query._id = { $ne: excludeId };
-      }
+  while (true) {
+    // Create a fresh query object for each iteration
+    const query: any = { slug };
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
 
-      while (await Post.findOne(query)) {
-            slug = `${baseSlug}-${counter}`;
-            counter++;
-            query.slug = slug; // Update query for next iteration
-      }
-
+    // Check if this slug exists
+    const existingPost = await Post.findOne(query);
+    
+    if (!existingPost) {
+      // Slug is unique, return it
       return slug;
+    }
+
+    // Slug exists, try next variation
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
 };
 
 const createPostIntoDB = async (payload: IPost, files: any) => {
@@ -467,6 +474,7 @@ const deletePostFromDB = async (id: string) => {
             }
             const deletedPost = await Post.findOneAndUpdate({ _id: id }, { status: 'deleted' }, { new: true, session });
             await Report.deleteMany({ postId: id }).session(session);
+            await SavePost.deleteMany({ postId: id }).session(session);
             await session.commitTransaction();
             return deletedPost;
       } catch (error) {
