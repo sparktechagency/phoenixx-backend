@@ -7,24 +7,45 @@ import { ICategory } from './category.interface';
 import mongoose from 'mongoose';
 import slugify from 'slugify';
 
+// const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
+//       let baseSlug = slugify(title, { lower: true });
+//       let slug = baseSlug;
+//       let counter = 1;
+
+//       // Build query to exclude current post (for update scenario)
+//       const query: any = { slug };
+//       if (excludeId) {
+//             query._id = { $ne: excludeId };
+//       }
+
+//       while (await Category.findOne(query)) {
+//             slug = `${baseSlug}-${counter}`;
+//             counter++;
+//             query.slug = slug; // Update query for next iteration
+//       }
+
+//       return slug;
+// };
+
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-      let baseSlug = slugify(title, { lower: true });
-      let slug = baseSlug;
-      let counter = 1;
-
-      // Build query to exclude current post (for update scenario)
-      const query: any = { slug };
-      if (excludeId) {
-            query._id = { $ne: excludeId };
-      }
-
-      while (await Category.findOne(query)) {
-            slug = `${baseSlug}-${counter}`;
-            counter++;
-            query.slug = slug; // Update query for next iteration
-      }
-
-      return slug;
+  const baseSlug = slugify(title, { lower: true, strict: true });
+  let slug = baseSlug;
+  let counter = 1;
+ 
+  while (true) {
+    const query: any = { slug };
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+ 
+    const existing = await Category.findOne(query);
+    if (!existing) break; 
+ 
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+ 
+  return slug;
 };
 
 const createCategoryIntoDB = async (data: ICategory, files: any) => {
