@@ -37,31 +37,34 @@ const populateReplies = {
 };
 
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-  const baseSlug = slugify(title, { lower: true });
-  
-  // For new posts, just check if slug exists
-  const existingBase = await Post.findOne({ slug: baseSlug });
-  if (!existingBase) {
-    return baseSlug; // Return base slug if it doesn't exist
-  }
+      const baseSlug = slugify(title, { lower: true });
+      const baseQuery: any = { slug: baseSlug, status: 'active' };
+      if (excludeId) {
+            baseQuery._id = { $ne: excludeId };
+      }
+      const existingBase = await Post.findOne(baseQuery);
+      if (!existingBase) {
+            return baseSlug; 
+      }
+      let counter = 1;
+      while (true) {
+            const newSlug = `${baseSlug}-${counter}`;
+            const numberedQuery: any = { slug: newSlug, status: 'active' };
+            if (excludeId) {
+                  numberedQuery._id = { $ne: excludeId };
+            }
 
-  // If base slug exists, find the next available number
-  let counter = 1;
-  while (true) {
-    const newSlug = `${baseSlug}-${counter}`;
-    const exists = await Post.findOne({ slug: newSlug });
-    
-    if (!exists) {
-      return newSlug; // Found available slug
-    }
-    
-    counter++;
-    
-    // Safety check to prevent infinite loop
-    if (counter > 1000) {
-      return `${baseSlug}-${Date.now()}`;
-    }
-  }
+            const exists = await Post.findOne(numberedQuery);
+
+            if (!exists) {
+                  return newSlug;
+            }
+
+            counter++;
+            if (counter > 1000) {
+                  return `${baseSlug}-${Date.now()}`;
+            }
+      }
 };
 
 const createPostIntoDB = async (payload: IPost, files: any) => {
@@ -475,7 +478,7 @@ const deletePostFromDB = async (id: string) => {
             if (!result) {
                   throw new Error('Post not found');
             }
-            const deletedPost = await Post.findOneAndUpdate({ _id: id }, { status: 'deleted' }, { new: true, session });
+            const deletedPost = await Post.findOneAndDelete({ _id: id }).session(session);
             await Report.deleteMany({ postId: id }).session(session);
             await SavePost.deleteMany({ postId: id }).session(session);
             await session.commitTransaction();
