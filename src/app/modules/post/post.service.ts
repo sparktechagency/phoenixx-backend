@@ -35,29 +35,32 @@ const populateReplies = {
             },
       ],
 };
+
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-  let baseSlug = slugify(title, { lower: true });
-  let slug = baseSlug;
+  const baseSlug = slugify(title, { lower: true });
+  
+  // For new posts, just check if slug exists
+  const existingBase = await Post.findOne({ slug: baseSlug });
+  if (!existingBase) {
+    return baseSlug; // Return base slug if it doesn't exist
+  }
+
+  // If base slug exists, find the next available number
   let counter = 1;
-
   while (true) {
-    // Create a fresh query object for each iteration
-    const query: any = { slug };
-    if (excludeId) {
-      query._id = { $ne: excludeId };
-    }
-
-    // Check if this slug exists
-    const existingPost = await Post.findOne(query);
+    const newSlug = `${baseSlug}-${counter}`;
+    const exists = await Post.findOne({ slug: newSlug });
     
-    if (!existingPost) {
-      // Slug is unique, return it
-      return slug;
+    if (!exists) {
+      return newSlug; // Found available slug
     }
-
-    // Slug exists, try next variation
-    slug = `${baseSlug}-${counter}`;
+    
     counter++;
+    
+    // Safety check to prevent infinite loop
+    if (counter > 1000) {
+      return `${baseSlug}-${Date.now()}`;
+    }
   }
 };
 
