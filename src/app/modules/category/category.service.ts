@@ -6,6 +6,7 @@ import { Post } from '../post/post.model';
 import { ICategory } from './category.interface';
 import mongoose from 'mongoose';
 import slugify from 'slugify';
+import ApiError from '../../../errors/ApiError';
 
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
       let baseSlug = slugify(title, { lower: true });
@@ -17,7 +18,13 @@ const createUniqueSlug = async (title: string, excludeId?: string): Promise<stri
       if (excludeId) {
             query._id = { $ne: excludeId };
       }
-
+      // TODO: Rakib:
+      // Check if category with same slug already exists
+      const existingCategory = await Category.findOne(query);
+      if (existingCategory) {
+            throw new ApiError(400, `Slug ${baseSlug} already exists. Please use a different title.`);
+      }
+      //TODO: end here
       while (await Category.findOne(query)) {
             slug = `${baseSlug}-${counter}`;
             counter++;
@@ -118,7 +125,14 @@ const getCategoryByIdFromDB = async (id: string) => {
 
 const updateCategoryByIdFromDB = async (id: string, data: ICategory, files: any) => {
       const existingCategory = await Category.findById(id);
-
+      // TODO: need to check same slug name already exist or not if have than throw an error
+      if (data.name) {
+            const existingCategoryWithSameName = await Category.findOne({ name: data.name });
+            if (existingCategoryWithSameName) {
+                  throw new ApiError(400, `Category name ${data.name} already exists. Please use a different name.`);
+            }
+      }
+      // TODO: END
       if (!existingCategory) {
             throw new Error('Category not found');
       }
