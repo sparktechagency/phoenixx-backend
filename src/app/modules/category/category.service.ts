@@ -31,22 +31,28 @@ const createUniqueSlug = async (title: string, excludeId?: string): Promise<stri
   const baseSlug = slugify(title, { lower: true, strict: true });
   let slug = baseSlug;
   let counter = 1;
- 
+
+  // This loop will keep running until a unique slug is found
   while (true) {
     const query: any = { slug };
     if (excludeId) {
-      query._id = { $ne: excludeId };
+      query._id = { $ne: excludeId }; // exclude the current document from the check
     }
- 
+
+    // Check if there's already a category with the same slug
     const existing = await Category.findOne(query);
-    if (!existing) break; 
- 
+    if (!existing) {
+      break; // If no existing category with the same slug, exit loop
+    }
+
+    // Otherwise, increment the counter and try a new slug
     slug = `${baseSlug}-${counter}`;
     counter++;
   }
- 
+
   return slug;
 };
+
 
 const createCategoryIntoDB = async (data: ICategory, files: any) => {
       if (!files) {
