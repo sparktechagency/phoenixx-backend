@@ -7,51 +7,27 @@ import { ICategory } from './category.interface';
 import mongoose from 'mongoose';
 import slugify from 'slugify';
 
-// const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-//       let baseSlug = slugify(title, { lower: true });
-//       let slug = baseSlug;
-//       let counter = 1;
-
-//       // Build query to exclude current post (for update scenario)
-//       const query: any = { slug };
-//       if (excludeId) {
-//             query._id = { $ne: excludeId };
-//       }
-
-//       while (await Category.findOne(query)) {
-//             slug = `${baseSlug}-${counter}`;
-//             counter++;
-//             query.slug = slug; // Update query for next iteration
-//       }
-
-//       return slug;
-// };
-
 const createUniqueSlug = async (title: string, excludeId?: string): Promise<string> => {
-  const baseSlug = slugify(title, { lower: true, strict: true });
-  let slug = baseSlug;
-  let counter = 1;
+      let baseSlug = slugify(title, { lower: true });
+      let slug = baseSlug;
+      let counter = 1;
 
-  // This loop will keep running until a unique slug is found
-  while (true) {
-    const query: any = { slug };
-    if (excludeId) {
-      query._id = { $ne: excludeId }; // exclude the current document from the check
-    }
+      // Build query to exclude current post (for update scenario)
+      const query: any = { slug };
+      if (excludeId) {
+            query._id = { $ne: excludeId };
+      }
 
-    // Check if there's already a category with the same slug
-    const existing = await Category.findOne(query);
-    if (!existing) {
-      break; // If no existing category with the same slug, exit loop
-    }
+      while (await Category.findOne(query)) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+            query.slug = slug; // Update query for next iteration
+      }
 
-    // Otherwise, increment the counter and try a new slug
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
-  return slug;
+      return slug;
 };
+
+
 
 
 const createCategoryIntoDB = async (data: ICategory, files: any) => {
