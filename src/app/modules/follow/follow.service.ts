@@ -5,10 +5,7 @@ import { NotificationService } from '../notification/notification.service';
 import { User } from '../user/user.model';
 
 const subscribe = async (subscriberId: string, userName: string) => {
-      console.log(userName, 'userName');
       const subscribedToId = await User.findOne({ userName: userName });
-      console.log("subscribedToId", subscribedToId);
-      console.log("subscribedToId._id", subscribedToId?._id);
       if (!subscribedToId) {
             throw new ApiError(404, 'User not found');
       }
@@ -39,7 +36,8 @@ const subscribe = async (subscriberId: string, userName: string) => {
             recipient: new Types.ObjectId(subscribedToId._id),
             type: 'new_follower',
             title: 'New Follower',
-            followerId: subscriber.userName,
+            followerId: new Types.ObjectId(subscriberId),
+            userName: subscriber.userName,
             message: `${subscriber.userName} started following you`,
             read: false,
       });

@@ -87,7 +87,8 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
             // 1. Create author notification
             const authorNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(result.author.toString()),
-                  postId: result.slug,
+                  postId: result._id,
+                  postSlug: result.slug,
                   type: 'post',
                   title: 'New Post Created',
                   message: `Your post has created successfully`,
@@ -113,7 +114,8 @@ const createPostIntoDB = async (payload: IPost, files: any) => {
                         try {
                               const followerNotification = await NotificationService.createNotificationToDB({
                                     recipient: new Types.ObjectId((follow.subscriber as any)._id.toString()),
-                                    postId: result.slug,
+                                    postId: result._id,
+                                    postSlug: result.slug,
                                     type: 'new_post_from_following',
                                     title: 'New Post from Someone You Follow',
                                     message: `${user.userName} has created a new post`,
@@ -269,7 +271,8 @@ const likePostIntoDB = async (id: string, userId: string) => {
       if (existingPost.author && existingPost.author.toString() !== userId) {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(existingPost.author.toString()),
-                  postId: existingPost._id.toString(),
+                  postId: existingPost._id,
+                  postSlug: existingPost.slug,
                   type: 'like',
                   title: 'Like Post',
                   message: `${findUser.userName} like your post`,

@@ -102,7 +102,8 @@ const createCommentIntoDB = async (payload: IComment) => {
             if (postOwner._id.toString() !== commenter._id.toString()) {
                   const postOwnerNotification = await NotificationService.createNotificationToDB({
                         recipient: postOwner._id,
-                        commentId: newComment._id.toString(),
+                        commentId: newComment._id,
+                        postId: payload.postId,
                         postSlug: postSlug?.slug,
                         type: 'comment',
                         title: 'New Comment on Your Post',
@@ -133,7 +134,8 @@ const createCommentIntoDB = async (payload: IComment) => {
                               const postSlug = await Post.findById(comment.postId).select("slug")
                               const commenterNotification = await NotificationService.createNotificationToDB({
                                     recipient: comment.author,
-                                    commentId: newComment._id.toString(),
+                                    commentId: newComment._id,
+                                    postId: comment.postId,
                                     postSlug: postSlug?.slug,
                                     type: 'comment_reply',
                                     title: 'New Comment on a Post You Commented On',
@@ -226,6 +228,7 @@ const replayCommentIntoDB = async (commentId: string, payload: Partial<IComment>
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(existingComment.author.toString()),
                   commentSlug: author?.userName,
+                  postId: existingComment.postId,
                   postSlug: postSlug?.slug,
                   type: 'reply',
                   title: 'Reply Comment',
