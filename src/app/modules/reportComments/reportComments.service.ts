@@ -7,6 +7,7 @@ import { Notification } from '../notification/notification.model';
 import { IReportComment } from './reportComments.interface';
 import { Comment } from '../comments/comment.model';
 import { ReportComment } from './reportComments.model';
+import { Post } from '../post/post.model';
 
 const createReport = async (payload: IReportComment) => {
       const comment = await Comment.findById(payload.commentId);
@@ -14,6 +15,7 @@ const createReport = async (payload: IReportComment) => {
             throw new Error('Comment not found');
       }
       payload.postId = comment.postId;
+      const postSlug = await Post.findById(comment.postId).select("slug")
       const result = await ReportComment.create(payload);
       if (!result) {
             throw new Error('Failed to create report');
@@ -22,7 +24,7 @@ const createReport = async (payload: IReportComment) => {
       const adminNotification = await Notification.create({
             recipientRole: 'admin',
             title: 'Report Comment',
-            postId: comment.postId,
+            postSlug: postSlug?.slug,
             commentId: comment._id,
             message: `A user has reported a comment ${comment.content}`,
             type: 'report',
@@ -31,7 +33,7 @@ const createReport = async (payload: IReportComment) => {
       const userNotification = await Notification.create({
             recipientRole: 'user',
             title: 'Report Comment',
-            postId: comment.postId,
+            postSlug: postSlug?.slug,
             commentId: comment._id,
             message: `Your comment ${comment.content} has been reported`,
             type: 'report',

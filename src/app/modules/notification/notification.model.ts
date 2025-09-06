@@ -6,15 +6,22 @@ const notificationSchema = new Schema<INotification>(
             recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
             sender: { type: Schema.Types.ObjectId, ref: 'User' },
             followerId: {
-                  type: Schema.Types.ObjectId,
-                  ref: 'User',
-                  default: null,
+                  type: String,
+                  default: '',
             },
             postId: {
                   type: String,
                   default: '',
             },
             commentId: {
+                  type: String,
+                  default: '',
+            },
+            commentSlug: {
+                  type: String,
+                  default: '',
+            },
+            postSlug: {
                   type: String,
                   default: '',
             },

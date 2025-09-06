@@ -39,7 +39,7 @@ const subscribe = async (subscriberId: string, userName: string) => {
             recipient: new Types.ObjectId(subscribedToId._id),
             type: 'new_follower',
             title: 'New Follower',
-            followerId: new Types.ObjectId(subscriberId),
+            followerId: subscriber.userName,
             message: `${subscriber.userName} started following you`,
             read: false,
       });
@@ -81,7 +81,7 @@ const getSubscribers = async (userName: string) => {
 };
 
 const isUserSubscribed = async (id: string, userName: string) => {
-      const user = await User.findOne({userName: userName});
+      const user = await User.findOne({ userName: userName });
       if (!user) {
             throw new ApiError(404, 'User not found');
       }

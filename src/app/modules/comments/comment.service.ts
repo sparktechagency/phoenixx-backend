@@ -97,13 +97,13 @@ const createCommentIntoDB = async (payload: IComment) => {
 
             // Notification logic
             const notifications = [];
-            
+            const postSlug = await Post.findById(payload.postId).select("slug")
             // 1. Notify post owner (if not commenting on own post)
             if (postOwner._id.toString() !== commenter._id.toString()) {
                   const postOwnerNotification = await NotificationService.createNotificationToDB({
                         recipient: postOwner._id,
                         commentId: newComment._id.toString(),
-                        postId: payload.postId.toString(),
+                        postSlug: postSlug?.slug,
                         type: 'comment',
                         title: 'New Comment on Your Post',
                         message: `${commenter.userName} commented on your post`,
@@ -130,24 +130,24 @@ const createCommentIntoDB = async (payload: IComment) => {
                         const commenterId = (comment.author as any)._id.toString();
                         if (!uniqueCommenters.has(commenterId)) {
                               uniqueCommenters.add(commenterId);
-                              
+                              const postSlug = await Post.findById(comment.postId).select("slug")
                               const commenterNotification = await NotificationService.createNotificationToDB({
                                     recipient: comment.author,
                                     commentId: newComment._id.toString(),
-                                    postId: payload.postId.toString(),
+                                    postSlug: postSlug?.slug,
                                     type: 'comment_reply',
                                     title: 'New Comment on a Post You Commented On',
                                     message: `${commenter.userName} also commented on ${postOwner.userName}'s post`,
                                     read: false,
                               });
-                              
+
                               previousCommenterNotifications.push({
                                     userId: commenterId,
                                     notification: commenterNotification
                               });
                         }
                   }
-                  
+
                   notifications.push(...previousCommenterNotifications);
             }
 
@@ -220,11 +220,13 @@ const replayCommentIntoDB = async (commentId: string, payload: Partial<IComment>
       await Comment.findByIdAndUpdate(commentId, {
             $push: { replies: result._id },
       });
+      const author = await User.findById(existingComment.author).select("userName")
+      const postSlug = await Post.findById(existingComment.postId).select("slug")
       if (existingComment.author) {
             const newNotification = await NotificationService.createNotificationToDB({
                   recipient: new Types.ObjectId(existingComment.author.toString()),
-                  commentId: existingComment.author.toString(),
-                  postId: existingComment.postId.toString(),
+                  commentSlug: author?.userName,
+                  postSlug: postSlug?.slug,
                   type: 'reply',
                   title: 'Reply Comment',
                   message: `${findUser.userName} reply your comment`,
