@@ -126,12 +126,12 @@ const getCategoryByIdFromDB = async (id: string) => {
 const updateCategoryByIdFromDB = async (id: string, data: ICategory, files: any) => {
       const existingCategory = await Category.findById(id);
       // TODO: need to check same slug name already exist or not if have than throw an error
-      if (data.name) {
-            const existingCategoryWithSameName = await Category.findOne({ name: data.name });
-            if (existingCategoryWithSameName) {
-                  throw new ApiError(400, `Category name ${data.name} already exists. Please use a different.`);
-            }
-      }
+      // if (data.name) {
+      //       const existingCategoryWithSameName = await Category.findOne({ name: data.name });
+      //       if (existingCategoryWithSameName) {
+      //             throw new ApiError(400, `Category name ${data.name} already exists. Please use a different.`);
+      //       }
+      // }
       // TODO: END
       if (!existingCategory) {
             throw new Error('Category not found');
