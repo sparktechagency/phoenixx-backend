@@ -86,7 +86,7 @@ const isUserSubscribed = async (id: string, userName: string) => {
             throw new ApiError(404, 'User not found');
       }
       // Fetch subscriptions of the user (you only need to check if the specific user is in the list)
-      const subscriptions = await Follow.find({ subscriber: user._id }).populate('subscribedTo', 'name');
+      const subscriptions = await Follow.find({ subscriber: user._id }).populate('subscribedTo', 'name _id userName');
       // Check if the user with the specific id is subscribed
       // const isSubscribed = subscriptions.some((sub) => sub.subscribedTo.toString() === id.toString());
       // Only return whether the user is subscribed, no need to return the full list of subscriptions
